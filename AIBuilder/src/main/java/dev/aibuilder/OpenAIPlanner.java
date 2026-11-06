@@ -35,7 +35,9 @@ public final class OpenAIPlanner {
         Player stands at (0,0,0), Y increases upward. Coordinates are local offsets.
         Bounds x,z in [-40,+40], y in [-10,+28]. Leave the player's initial 3x3x3 space clear
         unless they explicitly request a platform or player location.
-        Aim for 30-60 meaningful operations, maximum 85 operations and <=25000 blocks.
+        For a single house aim for 25-50 purposeful operations, not excessive ornaments.
+        For complex spawns use at most 80 operations and <=25000 blocks.
+        Get the architecture and walkability RIGHT before adding minor decoration.
         JSON correctness is more important than excessive small decorations.
         Modular plan, no overlaps that fill interiors, no unsupported blocks.
 
@@ -127,6 +129,22 @@ public final class OpenAIPlanner {
         override earlier ones. Thus carve door/window openings by specifying AIR
         after walls in JSON, before doors/panes. The compiler places final blocks
         in the designated stage order so support comes first.
+
+        CONSTRUCTION COORDINATE CHECKLIST:
+        - First choose one coherent origin, footprints and a single front direction.
+        - Floor is a flat supported plane; standing/walking space starts above it.
+        - Carve entrance from wall with AIR in openings stage, then put type=door
+          at exactly the same x,z and lower Y; do not block the entrance.
+        - Carve window holes at least 2 blocks above the floor before adding
+          glass panes. Do not let later walls overwrite the openings.
+        - Keep 3+ blocks of clear internal headroom, leave staircase path accessible.
+        - Use 2-4 coordinated materials, a recognizable roof profile and few,
+          intentional decorations. No floating torches, pots or lanterns.
+        - Put potted flowers with type=block, block=potted_poppy on a supported table.
+        - Do not invent unsupported operation names. e.g. use
+          {"type":"block","block":"flower_pot","stage":"details","x":2,"y":1,"z":3}
+          NOT {"type":"flower_pot",...}.
+        - Check every number for collision, connection and reasonable scale.
 
         REQUIRED QUALITY:
         - Use true interactive doors, usually one entrance and one rear door.
@@ -239,13 +257,16 @@ public final class OpenAIPlanner {
         // Other Polza model families may not, so do not force unsupported parameters.
         boolean jsonMode = "openai".equals(config.provider)
             || config.model.startsWith("openai/gpt-4.1")
-            || config.model.startsWith("openai/gpt-4o");
+            || config.model.startsWith("openai/gpt-4o")
+            || config.model.startsWith("openai/gpt-5.4");
         if (jsonMode) {
             JsonObject format = new JsonObject();
             format.addProperty("type", "json_object");
             request.add("response_format", format);
         }
-        if ("openai".equals(config.provider))
+        boolean newerGpt = config.model.startsWith("openai/gpt-5.")
+            || config.model.startsWith("gpt-5.");
+        if ("openai".equals(config.provider) || newerGpt)
             request.addProperty("max_completion_tokens", 9000);
         else
             request.addProperty("max_tokens", 9000);
@@ -253,6 +274,14 @@ public final class OpenAIPlanner {
         HttpResponse<String> response = send(config,key,request);
         // If a routed Polza model rejects JSON mode, fall back to plain chat.
         if (response.statusCode() == 400 && jsonMode && "polza".equals(config.provider)) {
+            request.remove("response_format");
+            response = send(config,key,request);
+        }
+        // Some proxy routing paths support only the older chat-completion token
+        // parameter even when the upstream GPT family prefers max_completion_tokens.
+        if (response.statusCode() == 400 && newerGpt && "polza".equals(config.provider)) {
+            request.remove("max_completion_tokens");
+            request.addProperty("max_tokens", 9000);
             request.remove("response_format");
             response = send(config,key,request);
         }
