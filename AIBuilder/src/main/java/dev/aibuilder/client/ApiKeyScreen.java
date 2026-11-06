@@ -38,13 +38,24 @@ public final class ApiKeyScreen extends Screen {
             Text.literal(providerTitle()), btn -> switchProvider()
         ).dimensions(cx - 150, cy - 85, 300, 20).build());
 
-        modelInput = new TextFieldWidget(this.textRenderer, cx - 150, cy - 39, 300, 20,
+        // One-click model presets for Polza and official OpenAI.
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Эконом 4.1 mini"),
+            btn -> chooseModel("gpt-4.1-mini"))
+            .dimensions(cx - 150, cy - 62, 96, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Лучше 5.4 mini"),
+            btn -> chooseModel("gpt-5.4-mini"))
+            .dimensions(cx - 50, cy - 62, 96, 20).build());
+        this.addDrawableChild(ButtonWidget.builder(Text.literal("Точно 4.1"),
+            btn -> chooseModel("gpt-4.1"))
+            .dimensions(cx + 50, cy - 62, 100, 20).build());
+
+        modelInput = new TextFieldWidget(this.textRenderer, cx - 150, cy - 35, 300, 20,
             Text.literal("Model ID"));
         modelInput.setMaxLength(100);
         modelInput.setText(current.model);
         this.addDrawableChild(modelInput);
 
-        secretInput = new TextFieldWidget(this.textRenderer, cx - 150, cy + 5, 300, 20,
+        secretInput = new TextFieldWidget(this.textRenderer, cx - 150, cy + 10, 300, 20,
             Text.literal("API key"));
         secretInput.setMaxLength(256);
         // This is client-local editable text. Only bullets are rendered on screen.
@@ -56,15 +67,22 @@ public final class ApiKeyScreen extends Screen {
         this.setInitialFocus(secretInput);
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Сохранить ключ и настройки"),
-            btn -> saveKey()).dimensions(cx - 150, cy + 34, 300, 20).build());
+            btn -> saveKey()).dimensions(cx - 150, cy + 39, 300, 20).build());
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Только настройки"),
-            btn -> saveSettings()).dimensions(cx - 150, cy + 60, 145, 20).build());
+            btn -> saveSettings()).dimensions(cx - 150, cy + 65, 145, 20).build());
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Удалить ключ"),
-            btn -> remove()).dimensions(cx + 5, cy + 60, 145, 20).build());
+            btn -> remove()).dimensions(cx + 5, cy + 65, 145, 20).build());
 
         this.addDrawableChild(ButtonWidget.builder(Text.literal("Закрыть"),
-            btn -> close()).dimensions(cx - 150, cy + 88, 300, 20).build());
+            btn -> close()).dimensions(cx - 150, cy + 93, 300, 20).build());
         showStoredKeyStatus();
+    }
+
+    private void chooseModel(String model) {
+        String fullId = "polza".equals(selectedProvider) ? "openai/" + model : model;
+        modelInput.setText(fullId);
+        status = "Выбрана модель " + fullId + ". Нажми «Только настройки», чтобы сохранить.";
+        statusColor = 0xFFD0D0D0;
     }
 
     private String providerTitle() {
@@ -132,14 +150,14 @@ public final class ApiKeyScreen extends Screen {
             Text.literal("AI Builder — сервис и API-ключ"), cx, cy - 115, 0xFFFFFFFF);
         draw.drawCenteredTextWithShadow(this.textRenderer,
             Text.literal("Ключ НЕ нужно писать в игровой чат!"), cx, cy - 100, 0xFFFFC879);
-        draw.drawTextWithShadow(this.textRenderer, "ID модели:", cx - 150, cy - 52, 0xFFD9D9D9);
+        draw.drawTextWithShadow(this.textRenderer, "ID модели:", cx - 150, cy - 48, 0xFFD9D9D9);
         draw.drawTextWithShadow(this.textRenderer, "API-ключ (скрытый ввод):",
-            cx - 150, cy - 8, 0xFFD9D9D9);
+            cx - 150, cy - 1, 0xFFD9D9D9);
         draw.drawCenteredTextWithShadow(this.textRenderer, Text.literal(status),
-            cx, cy + 113, statusColor);
+            cx, cy + 122, statusColor);
         draw.drawCenteredTextWithShadow(this.textRenderer,
             Text.literal("После сохранения: /ai build красивый деревянный дом"), cx,
-            cy + 130, 0xFFBEBEBE);
+            cy + 136, 0xFFBEBEBE);
     }
 
     @Override
