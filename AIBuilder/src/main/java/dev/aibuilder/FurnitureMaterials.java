@@ -26,7 +26,7 @@ public final class FurnitureMaterials {
         Map.entry("deepslate_bricks","deepslate_brick_stairs"),
         Map.entry("cobblestone","cobblestone_stairs"),
         Map.entry("quartz_block","quartz_stairs"),
-        Map.entry("smooth_quartz","quartz_stairs"),
+        Map.entry("smooth_quartz","smooth_quartz_stairs"),
         Map.entry("sandstone","sandstone_stairs"),
         Map.entry("polished_andesite","polished_andesite_stairs")
     );
@@ -93,6 +93,20 @@ public final class FurnitureMaterials {
         String candidate = id.endsWith(suffix)
             ? id.substring(0, id.length()-suffix.length()) + outputSuffix
             : explicit.get(id);
-        return candidate != null && allowed.contains(candidate) ? candidate : null;
+        if(candidate!=null && allowed.contains(candidate))return candidate;
+
+        // Most Minecraft masonry families use singular names for stair/slab
+        // variants: mossy_stone_bricks -> mossy_stone_brick_stairs.
+        // The final whitelist check prevents inventing new block IDs.
+        if(id.endsWith("_bricks") || id.equals("bricks") || id.endsWith("_tiles")){
+            String singular=id.substring(0,id.length()-1)+outputSuffix;
+            if(allowed.contains(singular))return singular;
+        }
+        if(id.endsWith("_block")) {
+            String shorter=id.substring(0,id.length()-"_block".length())+outputSuffix;
+            if(allowed.contains(shorter))return shorter;
+        }
+        String direct=id+outputSuffix;
+        return allowed.contains(direct)?direct:null;
     }
 }
