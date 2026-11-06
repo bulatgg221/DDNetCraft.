@@ -1,4 +1,4 @@
-# AI Builder Advanced Building 0.4.5 — Fabric 1.21.1
+# AI Builder Advanced Building 0.5.0 — Fabric 1.21.1
 
 **Minecraft Java 1.21.1 + Fabric Loader + Fabric API + Java 21.** AI Builder
 places real blocks in a local **singleplayer Creative Mode** world.
@@ -6,7 +6,7 @@ Make a backup before construction. The mod has no dedicated-server support.
 
 ## Quick start
 1. Remove every old `aibuilder-fabric-0.x.jar` from the active Minecraft profile's `mods` folder.
-2. Install the **0.4.5** JAR, Fabric API and restart Minecraft.
+2. Install the **0.5.0** JAR, Fabric API and restart Minecraft.
 3. Load a singleplayer world in Creative Mode.
 4. Press **F8** or enter `/ai key` to configure Polza AI/OpenAI, model and API key.
 5. Press **F7** or enter `/ai prompt` for the **multiline 1,800-character prompt editor**.
@@ -64,7 +64,7 @@ than standard chat command lengths should be entered through the **F7 GUI**.
 GitHub Actions → **Build AI Builder Fabric** on branch `ai-builder` → Artifacts
 → **AIBuilder-Advanced-1.21.1**. Download ZIP and extract the JAR.
 
-## New in 0.4.5: correcting invalid material IDs
+## New in 0.5.0: correcting invalid material IDs
 LLM output may invent names such as `light_oak_planks` or
 `pale_oak_planks`, which are not available in Minecraft 1.21.1.
 The interpreter now resolves common aliases (e.g. light oak → birch)
@@ -72,7 +72,7 @@ against its safe palette without making another chargeable API request.
 Unknown or unsafe IDs are still rejected. GitHub Actions includes
 Java-only smoke tests for the aliases.
 
-## Malformed AI JSON recovery (0.4.5)
+## Malformed AI JSON recovery (0.5.0)
 LLM replies can contain Markdown fences, trailing commas, missing commas/colons,
 truncated arrays, or invalid objects. Plans now pass through a constrained
 normalizer and structural checks. Only syntax is repaired locally. Unsafe
@@ -85,7 +85,7 @@ Set `"retryMalformedJson": false` in `config/aibuilder/config.json` to disable.
 The retry never sends the malformed response or any secrets to the model.
 JUnit parser regression tests are run during Gradle build.
 
-## New in 0.4.5: repairing malformed operation type names
+## New in 0.5.0: repairing malformed operation type names
 Some models confuse geometric primitive types with Minecraft materials, e.g.
 `{"type":"lantern"}` instead of `{"type":"block","block":"lantern"}`.
 The compiler now accepts valid palette material IDs as operation names,
@@ -95,7 +95,7 @@ It also supports a bounded set of architecture terms like `window`,
 still fail closed. This local correction consumes **no extra API tokens**.
 JUnit tests cover lanterns, panes, stairs, trapdoors and safe rejection.
 
-## Version 0.4.5 — model presets and stale JAR detection
+## Version 0.5.0 — model presets and stale JAR detection
 Run `/ai version` to read the version actually loaded by Fabric; if unknown,
 check the active LabyMod profile and remove older AI Builder JARs.
 Added explicit safe `flower_pot` operation alias + regression tests.
@@ -107,7 +107,7 @@ default to GPT-5.4 mini; existing configurations keep their chosen model.
 Models can have different API costs and response-parameter compatibility.
 Improved structure-first architect prompt and retry token compatibility.
 
-## Fix in 0.4.5 — incompatible optional block properties
+## Fix in 0.5.0 — incompatible optional block properties
 AI output sometimes attaches `axis=x` to `smooth_stone_slab`,
 which does not support the `axis` state property. Such *optional*
 model-supplied decorative state hints are now skipped when the actual
@@ -116,3 +116,33 @@ slab_type, log axis and stair facing properties remain applied.
 Required properties (two-block doors/beds, procedural stair roofs)
 retain strict validation. The model system prompt now explains
 which properties apply to which block families.
+
+## New in 0.5.0 — deterministic layout for standalone houses
+
+Freeform LLM coordinates often misalign doors, walls, window openings, roofs
+and stairwells even when all material names are correct. A new **house**
+operation lets the model specify only dimensions, number of floors,
+orientation and safe block palette; the engine computes the exact geometry.
+
+Example:
+```json
+{"name":"Timber cottage","operations":[{"type":"house","x":6,"y":0,"z":6,
+ "w":17,"d":13,"floors":2,"front":"north","wall":"birch_planks",
+ "roof":"dark_oak_stairs","door":"spruce_door"}]}
+```
+
+House mode includes 1–2 supported floors, two-block doors with carved openings,
+symmetrical glazed windows, gabled stair roofs with gable infill, a real
+staircase with floor clearance, practical furnishing and a front walkway.
+Dimensions must be w=11..25, d=9..23. `front` supports N/S/E/W.
+
+**`/ai house`** is now a free, offline demo of the parametric builder.
+
+A new layout-stage overlap policy also prevents an operation from
+overwriting a higher-priority roof/opening/window merely because its JSON
+object is listed later. Door and bed positions are protected.
+
+Existing freeform operations still work for castles, spawns, trees and
+non-rectangular structures, with less deterministic placement quality.
+No model upgrade is required: GPT-4.1 can benefit from the new scheme.
+Back up your world first. Real gameplay validation remains necessary.
