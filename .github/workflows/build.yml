@@ -3,6 +3,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+concurrency:
+  group: solo-build-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -22,6 +25,6 @@ jobs:
       - name: Upload playable jar
         uses: actions/upload-artifact@v7
         with:
-          name: DDNetCraft-Fabric-1.21.1
-          path: build/libs/ddnetcraft-fabric-0.2.0.jar
+          name: DDNetCraft-Solo-1.21.1
+          path: build/libs/ddnetcraft-fabric-0.3.0.jar
           if-no-files-found: error
