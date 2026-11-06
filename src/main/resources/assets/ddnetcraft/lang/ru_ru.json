@@ -1,1 +1,10 @@
-{"item.ddnetcraft.hook":"DDNet Хук","item.ddnetcraft.unfreezer":"DDNet Разморозка"}
+{
+  "key.category.ddnetcraft": "DDNetCraft — одиночный режим",
+  "key.ddnetcraft.toggle": "Включить/выключить DDNet",
+  "key.ddnetcraft.hook": "Хук (удерживать)",
+  "key.ddnetcraft.fire": "Стрелять",
+  "key.ddnetcraft.restart": "Рестарт карты",
+  "key.ddnetcraft.pistol": "Выбрать Pistol",
+  "key.ddnetcraft.grenade": "Выбрать Grenade",
+  "key.ddnetcraft.laser": "Выбрать Laser"
+}
