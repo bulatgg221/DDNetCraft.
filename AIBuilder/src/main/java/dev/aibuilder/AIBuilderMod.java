@@ -36,6 +36,25 @@ public final class AIBuilderMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BuildService.INSTANCE.clear());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("ai")
+                .then(CommandManager.literal("selftest").executes(ctx -> {
+                    ServerPlayerEntity player=ctx.getSource().getPlayerOrThrow();
+                    MinecraftServer server=ctx.getSource().getServer();
+                    if(!allowed(player,server))return 0;
+                    BuilderSelfTest.Result report=BuilderSelfTest.run(config);
+                    BuildService.tell(player,"Проверка AI Builder: "
+                        +report.paletteChecked()+" ID блоков Minecraft и "
+                        +report.scenariosChecked()+" тестовых геометрий.");
+                    if(report.success()) {
+                        BuildService.tell(player,
+                            "Тест пройден: неизвестных блоков и ошибок сборки образцов не найдено.");
+                        return 1;
+                    }
+                    BuildService.tell(player,"Найдено ошибок: "+report.failures().size());
+                    for(int i=0;i<Math.min(8,report.failures().size());i++)
+                        BuildService.tell(player,(i+1)+": "+report.failures().get(i));
+                    AIBuilderMod.LOG.warn("AI Builder selftest failures: {}",report.failures());
+                    return 0;
+                }))
                 .then(CommandManager.literal("version").executes(ctx -> {
                     String version = FabricLoader.getInstance().getModContainer("aibuilder")
                         .map(container -> container.getMetadata().getVersion().getFriendlyString())
@@ -49,6 +68,7 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
                     BuildService.tell(player, "/ai demo — спавн; /ai house <style> — 7 стилей домов; /ai castle — крепость без API.");
                     BuildService.tell(player, "/ai version — какая версия мода действительно запущена.");
+                    BuildService.tell(player, "/ai selftest — проверить палитру и операции без постройки и API.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 12000 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
