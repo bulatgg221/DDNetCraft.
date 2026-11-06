@@ -97,7 +97,13 @@ public final class OpenAIPlanner {
         stairs_run: climb from x,y,z in facing direction, h steps, width w.
           Do not block the overhead path with slabs/floors/ceilings.
         table: w*d tabletop one block above supporting fence legs at x,y,z.
+          Set block to a valid *_slab material such as oak_slab or spruce_slab,
+          leg to a real fence such as oak_fence. Do NOT use oak_planks with a
+          manual type property: full planks have no slab type. The engine can
+          convert common planks to slabs when you make a mistake.
         chair: oriented stair chair at x,y,z with facing north/south/east/west.
+          Set block to actual *_stairs such as oak_stairs or spruce_stairs.
+          Do NOT add block-state properties to plain plank or stone blocks.
         tree: log trunk of height h and leaves canopy radius r at x,y,z.
 
         VALID STAGES (these determine overlap priority independently of JSON order):
