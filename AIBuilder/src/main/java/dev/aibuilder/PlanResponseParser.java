@@ -22,9 +22,11 @@ public final class PlanResponseParser {
     private static final Set<String> STRING_FIELDS = Set.of(
         "type","stage","block","facing","hinge","half","slab_type","axis",
         "shape","leg","leaves","name","front","wall","beam","roof",
-        "floor","foundation","door","glass");
+        "floor","foundation","door","glass","style","roof_style","window_style","roof_block");
+    private static final Set<String> BOOLEAN_FIELDS=Set.of(
+        "porch","balcony","chimney","garden");
     private static final Pattern MISSING_COLON = Pattern.compile(
-        "(\\\"(?:name|operations|type|stage|block|x|y|z|x2|y2|z2|w|h|d|r|facing|hinge|half|slab_type|axis|open|shape|waterlogged|leg|leaves|floors|front|wall|beam|roof|floor|foundation|door|glass)\\\")\\s+(?=\\\"|\\{|\\[|-?[0-9]|true\\b|false\\b|null\\b)");
+        "(\\\"(?:name|operations|type|stage|block|x|y|z|x2|y2|z2|w|h|d|r|facing|hinge|half|slab_type|axis|open|shape|waterlogged|leg|leaves|floors|front|wall|beam|roof|floor|foundation|door|glass|style|roof_style|window_style|roof_block|porch|balcony|chimney|garden)\\\")\\s+(?=\\\"|\\{|\\[|-?[0-9]|true\\b|false\\b|null\\b)");
 
     public static String normalize(String response) {
         if (response == null || response.isBlank() || response.length() > 250_000)
@@ -71,6 +73,9 @@ public final class PlanResponseParser {
                 } else if (STRING_FIELDS.contains(name)) {
                     if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isString())
                         throw new IllegalArgumentException("Поле " + name + " должно быть строкой.");
+                } else if (BOOLEAN_FIELDS.contains(name)) {
+                    if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isBoolean())
+                        throw new IllegalArgumentException("Поле " + name + " должно быть true или false.");
                 }
             }
         }
