@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "ddnetcraft",
+  "version": "${version}",
+  "name": "DDNetCraft",
+  "description": "A DDNet-inspired grappling hook, freeze and racing mod.",
+  "authors": ["DDNetCraft project"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {"main": ["dev.ddnetcraft.DDNetCraftMod"]},
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
