@@ -1,6 +1,7 @@
 package dev.aibuilder.client;
 
 import dev.aibuilder.AIBuilderMod;
+import dev.aibuilder.PromptLimits;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -33,7 +34,7 @@ public final class PromptScreen extends Screen {
         editor = new EditBoxWidget(textRenderer,left,39,panelWidth,boxHeight,
             Text.literal("Опиши здание: размеры, двери, окна, интерьер, крышу, участок"),
             Text.literal("Подробный промпт строительства"));
-        editor.setMaxLength(1800);
+        editor.setMaxLength(PromptLimits.MAX_CHARS);
         editor.setText("");
         this.addDrawableChild(editor);
         this.setInitialFocus(editor);
@@ -55,8 +56,8 @@ public final class PromptScreen extends Screen {
             warning = "Опиши постройку подробнее (от 10 символов).";
             return;
         }
-        if (description.length() > 1800) {
-            warning = "Лимит: 1800 символов.";
+        if (description.length() > PromptLimits.MAX_CHARS) {
+            warning = "Лимит: " + PromptLimits.MAX_CHARS + " символов.";
             return;
         }
         MinecraftServer server = client.getServer();
@@ -76,13 +77,13 @@ public final class PromptScreen extends Screen {
     public void render(DrawContext draw,int mouseX,int mouseY,float delta) {
         super.render(draw,mouseX,mouseY,delta);
         draw.drawCenteredTextWithShadow(textRenderer,
-            Text.literal("AI Builder 0.4 — подробная постройка"),width/2,10,0xFFFFFFFF);
+            Text.literal("AI Builder — подробная постройка"),width/2,10,0xFFFFFFFF);
         draw.drawCenteredTextWithShadow(textRenderer,
             Text.literal("Двери, крыши, мебель, окна, лестницы — опиши всё здесь."),
             width/2,24,0xFFB4E5FF);
         int n = editor == null ? 0 : editor.getText().length();
         draw.drawCenteredTextWithShadow(textRenderer,
-            Text.literal(n+"/1800 символов  |  Ctrl+V — вставить промпт"),
+            Text.literal(n+"/"+PromptLimits.MAX_CHARS+" символов  |  Ctrl+V — вставить промпт"),
             width/2,height-27,0xFFC6C6C6);
         if(!warning.isBlank())draw.drawCenteredTextWithShadow(textRenderer,
             Text.literal(warning),width/2,height-14,0xFFFF6666);
