@@ -9,7 +9,7 @@ public final class FacingHints {
 
     public static String horizontal(String value){
         if(value==null)return "north";
-        String name=value.trim().toLowerCase(Locale.ROOT).replace('-','_');
+        String name=value.trim().toLowerCase(Locale.ROOT).replace(' ','_');
         return switch(name){
             case "north","n","negative_z","-z" -> "north";
             case "south","s","positive_z","+z" -> "south";
