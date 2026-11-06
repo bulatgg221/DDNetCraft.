@@ -153,8 +153,7 @@ public final class PlanCompiler {
                     }
                 }
                 case "roof_stairs" -> {
-                    if(!material.getBlock().getTranslationKey().contains("stairs"))
-                        throw new IllegalArgumentException("roof_stairs требует блок *_stairs");
+                    material=stairMaterial(material,"roof_stairs");
                     for(int dx=0;dx<w;dx++){
                         int rise=Math.min(dx,w-1-dx);
                         String facing=dx<w/2?"east":"west";
@@ -163,8 +162,7 @@ public final class PlanCompiler {
                     }
                 }
                 case "hip_roof" -> {
-                    if(!material.getBlock().getTranslationKey().contains("stairs"))
-                        throw new IllegalArgumentException("hip_roof требует блок *_stairs");
+                    material=stairMaterial(material,"hip_roof");
                     for(int dx=0;dx<w;dx++)for(int dz=0;dz<d;dz++){
                         int sideX=Math.min(dx,w-1-dx),sideZ=Math.min(dz,d-1-dz);
                         int rise=Math.min(sideX,sideZ);
@@ -206,7 +204,7 @@ public final class PlanCompiler {
                 }
                 case "block","chair" -> {
                     BlockState state=type.equals("chair")
-                        ? block(string(op,"block","oak_stairs")) : material;
+                        ? stairMaterial(material,"chair") : material;
                     state=applyProperties(state,op);
                     if(type.equals("chair"))state=setProperty(state,"facing",string(op,"facing","north"));
                     if(type.equals("block") && (isDoor(state)||isBed(state)))
@@ -236,8 +234,15 @@ public final class PlanCompiler {
                 case "table" -> {
                     if(w>8||d>6)throw new IllegalArgumentException("Стол максимум 8x6.");
                     BlockState legs=block(string(op,"leg","oak_fence"));
-                    BlockState top=block(string(op,"block","oak_slab"));
-                    top=setProperty(top,"type","top");
+                    String requested=string(op,"block","oak_slab");
+                    String tabletop=FurnitureMaterials.tabletop(requested,MATERIALS);
+                    if(!tabletop.equals(MaterialAliases.resolve(requested,MATERIALS)))
+                        AIBuilderMod.LOG.info("Corrected table material '{}' to slab '{}'",requested,tabletop);
+                    BlockState top=block(tabletop);
+                    // A generic full block such as oak_planks/stone_bricks has NO
+                    // Minecraft block-state property "type". Only apply it to slabs.
+                    if(top.getProperties().stream().anyMatch(p -> p.getName().equals("type")))
+                        top=setProperty(top,"type","top");
                     for(int dx=0;dx<w;dx++)for(int dz=0;dz<d;dz++)
                         add(blocks,origin,cfg,x+dx,y+1,z+dz,top,stage);
                     for(int dx: new int[]{0,w-1})for(int dz: new int[]{0,d-1})
@@ -247,9 +252,7 @@ public final class PlanCompiler {
                     String dir=string(op,"facing","north");
                     Direction facing=Direction.byName(dir);
                     if(facing==null||!facing.getAxis().isHorizontal())throw new IllegalArgumentException("stairs_run: неверный facing");
-                    BlockState stair=setProperty(material,"facing",dir);
-                    if(!material.getBlock().getTranslationKey().contains("stairs"))
-                        throw new IllegalArgumentException("stairs_run требует *_stairs.");
+                    BlockState stair=setProperty(stairMaterial(material,"stairs_run"),"facing",dir);
                     if(h>20)throw new IllegalArgumentException("Лестничный марш максимум 20 ступеней.");
                     for(int i=0;i<h;i++)for(int side=0;side<w;side++){
                         int ox=facing.getOffsetZ()!=0?side:0;
@@ -344,6 +347,22 @@ public final class PlanCompiler {
         }
         return state;
     }
+    private static BlockState stairMaterial(BlockState original,String operation){
+        String id=Registries.BLOCK.getId(original.getBlock()).getPath();
+        String replacement=FurnitureMaterials.stair(id,MATERIALS);
+        if(replacement==null) {
+            if(operation.equals("chair")) {
+                AIBuilderMod.LOG.warn("Chair material '{}' is not stairs; using oak_stairs",id);
+                return block("oak_stairs");
+            }
+            throw new IllegalArgumentException(
+                operation+" требует *_stairs; выбран блок "+id+" без совместимых ступеней.");
+        }
+        if(!replacement.equals(id))
+            AIBuilderMod.LOG.info("Corrected {} material '{}' to '{}'",operation,id,replacement);
+        return replacement.equals(id)?original:block(replacement);
+    }
+
     private static BlockState setProperty(BlockState state,String name,String value){
         for(Property<?> property:state.getProperties()){
             if(property.getName().equals(name))return typedProperty(state,property,value);
