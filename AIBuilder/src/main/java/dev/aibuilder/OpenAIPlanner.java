@@ -35,7 +35,8 @@ public final class OpenAIPlanner {
         Player stands at (0,0,0), Y increases upward. Coordinates are local offsets.
         Bounds x,z in [-40,+40], y in [-10,+28]. Leave the player's initial 3x3x3 space clear
         unless they explicitly request a platform or player location.
-        Use at most 95 operations and aim for 40-85 meaningful operations / <=25000 blocks.
+        Aim for 30-60 meaningful operations, maximum 85 operations and <=25000 blocks.
+        JSON correctness is more important than excessive small decorations.
         Modular plan, no overlaps that fill interiors, no unsupported blocks.
 
         Available types and EXACT semantics:
@@ -160,54 +161,133 @@ public final class OpenAIPlanner {
           {"type":"chair","stage":"interior","block":"oak_stairs",
             "x":2,"y":1,"z":-1,"facing":"south"}
         ]}
-        Output only JSON. No trailing commas or commentary.
+        Every property name MUST have a colon; every pair of objects in an array
+        MUST have a comma; use double quotes on keys and values; no unescaped
+        newlines inside strings. Close all braces, brackets and quotes.
+        Output a complete valid JSON object, without comments, trailing commas or markdown.
         """;
 
     private OpenAIPlanner() {}
 
+    private static final String RETRY_INSTRUCTIONS = """
+        Your previous response was malformed, truncated or invalid JSON. Generate a
+        NEW complete building plan using the same requirements, NOT a fragment.
+        IMPORTANT: valid strict JSON, double-quoted property names and values, colons
+        between keys and values, commas between objects and properties, no trailing commas.
+        Never place markdown fences around the response. Return at most 45 operations
+        with compact one-line JSON. Every JSON object MUST be closed. Do not invent blocks.
+        If the requested project is big, prioritize a small but finished, furnished
+        building, with actual doors, walkable rooms and a roof over incomplete scenery.
+        """;
+
+    private static final class InvalidPlanJson extends Exception {
+        InvalidPlanJson(String message) { super(message); }
+    }
+
     public static CompletableFuture<String> plan(String prompt, BuilderConfig config) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (prompt.length() > 1800) throw new IllegalArgumentException("Промпт слишком длинный (максимум 1800 символов).");
+                if (prompt == null || prompt.isBlank() || prompt.length() > 1800)
+                    throw new IllegalArgumentException("Промпт должен быть длиной 1–1800 символов.");
                 String key = BuilderConfig.key(config);
-                JsonArray messages = new JsonArray();
-                JsonObject sys = new JsonObject(); sys.addProperty("role", "system"); sys.addProperty("content", SYSTEM);
-                JsonObject user = new JsonObject(); user.addProperty("role", "user"); user.addProperty("content", prompt);
-                messages.add(sys); messages.add(user);
-                JsonObject request = new JsonObject();
-                request.addProperty("model", config.model);
-                request.add("messages", messages);
-                JsonObject format = new JsonObject(); format.addProperty("type", "json_object");
-                if ("openai".equals(config.provider)) {
-                    request.add("response_format", format);
-                    request.addProperty("max_completion_tokens", 9000);
-                } else {
-                    // Polza supports standard chat completions; not all routed models accept JSON mode.
-                    request.addProperty("max_tokens", 9000);
+                try {
+                    return requestPlan(prompt,config,key,false);
+                } catch (InvalidPlanJson invalid) {
+                    if (!config.retryMalformedJson)
+                        throw new IllegalStateException(
+                            "ИИ прислал повреждённый JSON. Включи retryMalformedJson в config.json или сократи промпт.");
+                    AIBuilderMod.LOG.warn("AI Builder: malformed model plan; requesting one fresh shorter plan (extra API tokens may be charged).");
+                    try {
+                        return requestPlan(prompt,config,key,true);
+                    } catch (InvalidPlanJson retryFailed) {
+                        throw new IllegalStateException(
+                            "ИИ дважды прислал некорректный JSON. Попробуй более короткий запрос или другую модель.");
+                    }
                 }
-
-                HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(config.endpoint()))
-                    .header("Authorization", "Bearer " + key)
-                    .header("Content-Type", "application/json")
-                    .timeout(Duration.ofSeconds(65))
-                    .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(request), StandardCharsets.UTF_8))
-                    .build();
-                HttpResponse<String> response = HTTP.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                if (response.statusCode() == 401) throw new IllegalStateException("Ключ " + BuilderConfig.providerName(config.provider) + " не принят (401).");
-                if (response.statusCode() == 402) throw new IllegalStateException("Недостаточно средств или исчерпан лимит Polza AI (402).");
-                if (response.statusCode() == 404) throw new IllegalStateException("Модель не найдена (404): проверь ID " + config.model + ".");
-                if (response.statusCode() == 429) throw new IllegalStateException("Лимит API / баланс (429). Проверь usage и billing.");
-                if (response.statusCode() < 200 || response.statusCode() >= 300)
-                    throw new IllegalStateException(BuilderConfig.providerName(config.provider) + " API вернул HTTP " + response.statusCode());
-                if (response.body().length() > 200_000) throw new IllegalStateException("Ответ API слишком большой.");
-                JsonObject body = JsonParser.parseString(response.body()).getAsJsonObject();
-                String result = body.getAsJsonArray("choices").get(0).getAsJsonObject()
-                    .getAsJsonObject("message").get("content").getAsString();
-                JsonParser.parseString(result).getAsJsonObject();
-                return result;
             } catch (Exception exception) {
-                throw new RuntimeException(exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
+                throw new RuntimeException(exception.getMessage() == null
+                    ? exception.getClass().getSimpleName() : exception.getMessage());
             }
         }, IO);
+    }
+
+    private static String requestPlan(String prompt, BuilderConfig config, String key,
+                                      boolean retry) throws Exception {
+        JsonArray messages = new JsonArray();
+        JsonObject sys = new JsonObject();
+        sys.addProperty("role", "system");
+        sys.addProperty("content", SYSTEM + (retry ? "\\n" + RETRY_INSTRUCTIONS : ""));
+        JsonObject user = new JsonObject();
+        user.addProperty("role", "user");
+        user.addProperty("content", prompt);
+        messages.add(sys);
+        messages.add(user);
+
+        JsonObject request = new JsonObject();
+        request.addProperty("model", config.model);
+        request.add("messages", messages);
+
+        // OpenAI GPT-4.1 supports JSON mode, including when accessed through Polza.
+        // Other Polza model families may not, so do not force unsupported parameters.
+        boolean jsonMode = "openai".equals(config.provider)
+            || config.model.startsWith("openai/gpt-4.1")
+            || config.model.startsWith("openai/gpt-4o");
+        if (jsonMode) {
+            JsonObject format = new JsonObject();
+            format.addProperty("type", "json_object");
+            request.add("response_format", format);
+        }
+        if ("openai".equals(config.provider))
+            request.addProperty("max_completion_tokens", 9000);
+        else
+            request.addProperty("max_tokens", 9000);
+
+        HttpResponse<String> response = send(config,key,request);
+        // If a routed Polza model rejects JSON mode, fall back to plain chat.
+        if (response.statusCode() == 400 && jsonMode && "polza".equals(config.provider)) {
+            request.remove("response_format");
+            response = send(config,key,request);
+        }
+
+        if (response.statusCode() == 401)
+            throw new IllegalStateException("Ключ " + BuilderConfig.providerName(config.provider) + " отклонён (401).");
+        if (response.statusCode() == 402)
+            throw new IllegalStateException("Не хватает средств на API (402).");
+        if (response.statusCode() == 404)
+            throw new IllegalStateException("Модель не найдена (404): " + config.model);
+        if (response.statusCode() == 429)
+            throw new IllegalStateException("Лимит запросов или баланс API (429).");
+        if (response.statusCode() < 200 || response.statusCode() >= 300)
+            throw new IllegalStateException("API вернул HTTP " + response.statusCode()
+                + ". Проверь модель и доступ к сервису.");
+        if (response.body().length() > 250_000)
+            throw new InvalidPlanJson("Ответ API слишком большой.");
+
+        JsonObject outer = JsonParser.parseString(response.body()).getAsJsonObject();
+        JsonObject choice = outer.getAsJsonArray("choices").get(0).getAsJsonObject();
+        String finish = choice.has("finish_reason") && !choice.get("finish_reason").isJsonNull()
+            ? choice.get("finish_reason").getAsString() : "";
+        if ("length".equals(finish))
+            throw new InvalidPlanJson("ИИ не закончил JSON-план из-за ограничения длины.");
+        JsonObject message = choice.getAsJsonObject("message");
+        if (message == null || !message.has("content") || message.get("content").isJsonNull())
+            throw new InvalidPlanJson("ИИ не вернул текст плана.");
+        String result = message.get("content").getAsString();
+        try {
+            return PlanResponseParser.normalize(result);
+        } catch (RuntimeException parse) {
+            throw new InvalidPlanJson("ИИ вернул синтаксически некорректный JSON.");
+        }
+    }
+
+    private static HttpResponse<String> send(BuilderConfig config,String key,JsonObject request)
+            throws Exception {
+        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(config.endpoint()))
+            .header("Authorization", "Bearer " + key)
+            .header("Content-Type", "application/json")
+            .timeout(Duration.ofSeconds(90))
+            .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(request),StandardCharsets.UTF_8))
+            .build();
+        return HTTP.send(httpRequest,HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     }
 }
