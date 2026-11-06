@@ -96,7 +96,13 @@ public final class HouseLayouts {
         chair(out,x+4,y+1,z+2,"south");
         chair(out,x+4,y+1,z+5,"north");
         add(out,"box","interior","bookshelf",x+1,y+1,z+d-3,1,2,2);
-        add(out,"block","interior","glowstone",cx,y+4,cz,1,1,1);
+        // Inset lights into the side wall instead of leaving floating light blocks.
+        add(out,"block","interior","glowstone",x,y+4,cz,1,1,1);
+        if (floors == 1) {
+            JsonObject singleBed=add(out,"bed","interior","red_bed",
+                x+w-4,y+1,z+d-3,1,1,1);
+            singleBed.addProperty("facing","north");
+        }
 
         if(floors==2) {
             // A carved continuous vertical stairwell avoids collisions with the upper floor.
@@ -109,7 +115,7 @@ public final class HouseLayouts {
                 x+3,y+6,z+d-3,1,1,1);
             bed.addProperty("facing","north");
             add(out,"box","interior","bookshelf",x+1,y+6,z+2,1,2,2);
-            add(out,"block","interior","glowstone",cx,y+9,cz,1,1,1);
+            add(out,"block","interior","glowstone",x,y+9,cz,1,1,1);
         }
         return out;
     }
