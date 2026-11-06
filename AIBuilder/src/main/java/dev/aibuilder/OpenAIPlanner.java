@@ -127,39 +127,11 @@ public final class OpenAIPlanner {
         Coordinates and all dimensions must be integer numbers, w/h/d/r positive.
         Never output secrets, Minecraft commands, entities or block inventories.
 
-        Materials, choose ONLY from this whitelist:
-        stone_bricks mossy_stone_bricks cracked_stone_bricks chiseled_stone_bricks
-        cobblestone mossy_cobblestone stone smooth_stone andesite polished_andesite
-        deepslate_bricks polished_deepslate calcite tuff tuff_bricks
-        oak_planks spruce_planks dark_oak_planks birch_planks stripped_oak_log
-        oak_log spruce_log dark_oak_log oak_leaves spruce_leaves birch_leaves
-        bricks mud_bricks terracotta white_terracotta orange_terracotta red_terracotta
-        white_concrete gray_concrete light_gray_concrete black_concrete
-        blue_concrete cyan_concrete red_concrete green_concrete yellow_concrete
-        quartz_block smooth_quartz sandstone smooth_sandstone red_sandstone
-        prismarine_bricks dark_prismarine sea_lantern glowstone glass
-        white_stained_glass blue_stained_glass light_blue_stained_glass
-        purple_stained_glass iron_bars gold_block emerald_block diamond_block
-        grass_block dirt coarse_dirt gravel sand red_sand clay snow_block packed_ice
-        blue_ice obsidian blackstone polished_blackstone_bricks nether_bricks
-        red_nether_bricks warped_planks crimson_planks water air
-        oak_door spruce_door birch_door dark_oak_door iron_door cherry_door
-        warped_door crimson_door oak_stairs spruce_stairs dark_oak_stairs
-        birch_stairs stone_brick_stairs cobblestone_stairs deepslate_brick_stairs
-        brick_stairs quartz_stairs sandstone_stairs polished_andesite_stairs
-        oak_slab spruce_slab dark_oak_slab birch_slab stone_brick_slab smooth_stone_slab
-        brick_slab quartz_slab sandstone_slab deepslate_brick_slab
-        oak_fence spruce_fence dark_oak_fence birch_fence
-        oak_fence_gate spruce_fence_gate
-        oak_trapdoor spruce_trapdoor dark_oak_trapdoor birch_trapdoor iron_trapdoor
-        glass_pane white_stained_glass_pane blue_stained_glass_pane
-        light_blue_stained_glass_pane brown_stained_glass_pane black_stained_glass_pane
-        stone_brick_wall cobblestone_wall deepslate_brick_wall
-        lantern soul_lantern chain torch wall_torch redstone_lamp bookshelf crafting_table
-        flower_pot potted_poppy potted_dandelion potted_blue_orchid
-        poppy dandelion blue_orchid rose_bush peony lilac sunflower short_grass fern
-        red_carpet white_carpet blue_carpet green_carpet brown_carpet
-        red_bed white_bed blue_bed green_bed black_bed yellow_bed
+        Materials, choose ONLY from this exact Minecraft 1.21.1 safe palette.
+        The game verifies all block IDs against the actual Minecraft registry.
+        All 16 stained glass colors and their matching stained glass PANE blocks
+        are supported (including purple_stained_glass_pane). Do not guess names.
+        {{MATERIAL_PALETTE}}
 
 
         A VALID DOOR AND WINDOW COORDINATION EXAMPLE (NOT a ready-made building):
@@ -176,7 +148,7 @@ public final class OpenAIPlanner {
         Invent the rest of the geometry completely from the user brief.
         Output strict well-formed JSON with all braces and brackets closed.
         Avoid trailing commas, markdown fences and comments.
-        """;
+        """.replace("{{MATERIAL_PALETTE}}", MaterialCatalog.promptList());
 
     private OpenAIPlanner() {}
 
