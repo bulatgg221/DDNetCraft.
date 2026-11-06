@@ -1,52 +1,65 @@
-# AI Builder 0.3.0 — Minecraft Fabric 1.21.1
+# AI Builder Advanced Building 0.4.0 — Fabric 1.21.1
 
-A prompt-to-blocks mod for **singleplayer Creative Mode**.
-Java 21 and Fabric API required. Back up your world before building.
+**Minecraft Java 1.21.1 + Fabric Loader + Fabric API + Java 21.** AI Builder
+places real blocks in a local **singleplayer Creative Mode** world.
+Make a backup before construction. The mod has no dedicated-server support.
 
-## Setup in LabyMod or vanilla Fabric
-1. Delete all older aibuilder .jar files from the active profile's mods directory.
-2. Install aibuilder-fabric-0.3.0.jar and restart the game.
-3. Open a singleplayer world and type **`/ai key`** (this is a normal
-   Fabric server command, unlike the older /aikey client command). You can also
-   press **F8** or try **`/ai setup`**.
-4. Select **Polza AI** or **OpenAI**, and choose your model.
-5. For Polza, the tested catalog ID is **`openai/gpt-4.1-mini`**.
-   Polza chat endpoint: `https://polza.ai/api/v1/chat/completions`.
-   The Polza API key is normally prefixed `pza_`. The model uses API balance
-   on Polza, not your ChatGPT subscription.
-6. Paste the key in the **masked GUI field**, NOT in Minecraft chat, and click
-   **Сохранить ключ и настройки**.
-7. Run **`/ai build построй деревянный дом`** in Creative Mode.
+## Quick start
+1. Remove every old `aibuilder-fabric-0.x.jar` from the active Minecraft profile's `mods` folder.
+2. Install the **0.4.0** JAR, Fabric API and restart Minecraft.
+3. Load a singleplayer world in Creative Mode.
+4. Press **F8** or enter `/ai key` to configure Polza AI/OpenAI, model and API key.
+5. Press **F7** or enter `/ai prompt` for the **multiline 1,800-character prompt editor**.
+6. Paste a detailed description of the house/castle/spawn and press *Построить по промпту*.
+7. Watch `/ai status`; use `/ai undo` to reverse last completed build.
 
-## Commands
-- `/ai key`, `/ai setup`: open provider/model/key screen in local singleplayer
-- `/aikey`: optional client-side alias; LabyMod may intercept it
-- **F8**: open API settings regardless of client chat command handling
-- `/ai build <prompt>`: generate and place Minecraft blocks from a text prompt
-- `/ai demo`: offline medieval spawn test, no API key required
-- `/ai status`: progress
-- `/ai cancel`: stop and roll back work in progress
-- `/ai undo`: undo last completed construction
-- `/ai reload`: reload advanced config values
-- `/ai help`: command list
+No API key needed to test the building engine:
+- `/ai demo`: original medieval spawn
+- **`/ai house`: detailed two-storey demo house** with actual working doors,
+  roof stairs, windows, furniture, beds and staircase
 
-## Secret separation and migration
-The game creates `config/aibuilder/config.json`, relative to the **active game
-profile**. The GUI resolves this path automatically, including LabyMod profiles.
+## Supported advanced blocks and shapes
+In addition to boxes/spheres/cylinders/arches/lines/trees:
+- Two-block **working doors** (oak/spruce/dark oak/birch/iron/cherry/crimson/warped):
+  both halves and facing/hinge states
+- Real two-block **beds** with facing and foot/head parts
+- Facing **stairs**, gabled stair roofs, staircases, slabs (bottom/top), trapdoors
+- Fences, fence gates, panes, lanterns, bookshelves, carpets and flower decorations
+- Procedural **tables** and **chairs** for furnishing rooms
+- Building stages: **foundation → walls → roof → openings → details → interior → landscape**
+- World modifications are bounded and batched by game ticks. You can cancel and undo.
 
-- OpenAI key: `config/aibuilder/api-key.txt`
-- Polza AI key: `config/aibuilder/polza-key.txt`
-- Keys are never put into source code, Minecraft chat arguments, or GitHub.
-- The GUI stores each provider's key separately to prevent sending an OpenAI
-  secret to Polza or vice versa.
-- Existing 0.2.x configurations without a `provider` setting stay on OpenAI
-  until the provider is changed in the new GUI.
-- `/ai key` requires an **integrated singleplayer server**, not dedicated server.
-  If the new GUI is not loading under LabyMod, test a clean Fabric 1.21.1 profile.
+### Example prompt
 
-The selected provider's API endpoint is fixed in source (allowlisted), not entered
-as an arbitrary URL. Full world backups are strongly recommended. Use only
-API keys with appropriate usage limits.
+> Design a realistic 19×15 two-storey Tudor house with genuine spruce doors,
+> a walkable staircase, a dark oak stair-block roof, windows made of glass panes,
+> a furnished living room with table and chairs, two beds upstairs, lanterns,
+> garden fence, front path, trees and flowerbeds. No solid filled rooms.
+> Keep openings clear. Make the floors traversable.
 
-## Build source
-GitHub Actions → Build AI Builder Fabric → latest successful run → Artifacts.
+For shorter requests, `/ai build <description>` still works. Prompts longer
+than standard chat command lengths should be entered through the **F7 GUI**.
+
+## Polza AI settings (optional third-party API)
+- Provider: **Polza AI**
+- Model ID: `openai/gpt-4.1-mini`
+- Endpoint (built into the mod): `https://polza.ai/api/v1/chat/completions`
+- A separate Polza AI key is required; it is saved locally in
+  `config/aibuilder/polza-key.txt`. OpenAI keys are saved separately.
+- API usage charges are separate from ChatGPT subscriptions.
+- Do not paste any API key into Minecraft chat or share it with anyone.
+
+## Limitations
+- Models generate *plans*, not verified in-game architectural masterpieces.
+  A malformed/invalid JSON plan is safely rejected without changing the world.
+- This update compiles under Gradle; real in-game functional testing is still required.
+- Some decorative blocks depend on adjacency/support and may be replaced by vanilla
+  neighbor updates. Bed/door support, clearance and materials matter.
+- No chunk persistence of build queues, no undo across restarts, no native structure files.
+- 100 max operations by default, maximum 30,000 blocks and configurable spatial bounds.
+- Using a modded Minecraft launcher (especially LabyMod) can alter keybindings/UI.
+  When in doubt test a clean Fabric profile.
+
+## Build
+GitHub Actions → **Build AI Builder Fabric** on branch `ai-builder` → Artifacts
+→ **AIBuilder-Advanced-1.21.1**. Download ZIP and extract the JAR.
