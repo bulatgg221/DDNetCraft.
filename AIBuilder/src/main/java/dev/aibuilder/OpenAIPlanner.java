@@ -286,8 +286,8 @@ public final class OpenAIPlanner {
     public static CompletableFuture<String> plan(String prompt, BuilderConfig config) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                if (prompt == null || prompt.isBlank() || prompt.length() > 1800)
-                    throw new IllegalArgumentException("Промпт должен быть длиной 1–1800 символов.");
+                if (prompt == null || prompt.isBlank() || prompt.length() > PromptLimits.MAX_CHARS)
+                    throw new IllegalArgumentException("Промпт должен быть длиной 1–" + PromptLimits.MAX_CHARS + " символов.");
                 String key = BuilderConfig.key(config);
                 try {
                     return requestPlan(prompt,config,key,false);
