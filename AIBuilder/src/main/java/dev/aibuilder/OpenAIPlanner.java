@@ -52,8 +52,16 @@ public final class OpenAIPlanner {
         arch: 2 columns at x and x+w-1 plus crossbeam at y+h-1, depth d.
         line: 3D line from (x,y,z) to (x2,y2,z2).
         tree: trunk height h, foliage radius r; default trunk oak_log, optional leaves.
-        block: ONE block at (x,y,z) with optional facing, half, slab_type, axis, open.
+        block: ONE block at (x,y,z) with optional facing, half, slab_type, axis, open, hanging.
             Use for slabs, stairs, trapdoors, lanterns, panes, fences, lights, carpets.
+        STRICT DISTINCTION: type is the geometric OPERATION, block is the Minecraft
+        MATERIAL. Do NOT set type to a block ID (lantern, torch, glass_pane,
+        oak_stairs, bookshelf, oak_fence, etc.). For a lantern use EXACTLY
+        {"type":"block","stage":"details","block":"lantern","x":3,"y":4,"z":0}.
+        For a wall lamp use type=block and block=lantern or soul_lantern;
+        hanging=true is optional when the lantern attaches below a ceiling.
+        A two-block door is type=door with block=oak_door, NOT type=oak_door.
+        For multiple adjacent glass panes use type=box with block=glass_pane.
         door: TWO actual interactive door blocks (lower and upper halves), at (x,y,z),
             material *_door, facing north|south|east|west, optional hinge left|right.
             Door at y=1 when floor is at y=0; DO NOT fill the door opening with stone.
