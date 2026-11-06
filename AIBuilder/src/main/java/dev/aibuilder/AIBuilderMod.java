@@ -49,7 +49,7 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai demo — спавн; /ai house <style> — 7 стилей дома без API.");
                     BuildService.tell(player, "/ai version — какая версия мода действительно запущена.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
-                    BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 1800 символов.");
+                    BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 12000 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
                     return 1;
                 }))
@@ -192,8 +192,8 @@ public final class AIBuilderMod implements ModInitializer {
                         
                         if (!allowed(player, server)) return 0;
                         prompt = prompt.strip();
-                        if (prompt.isEmpty() || prompt.length() > 1800) {
-                            BuildService.tell(player, "Укажи описание длиной 1–1800 символов."); return 0;
+                        if (prompt.isEmpty() || prompt.length() > PromptLimits.MAX_CHARS) {
+                            BuildService.tell(player, "Укажи описание длиной 1–" + PromptLimits.MAX_CHARS + " символов."); return 0;
                         }
                         BuildService service = BuildService.INSTANCE;
                         int ticket = service.beginPlanning();
