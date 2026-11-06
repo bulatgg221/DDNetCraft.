@@ -85,6 +85,9 @@ public final class BuildService {
         lastOwner = null;
         tell(player, "Начинаю «" + plan.name() + "»: " + plan.blocks().size() + " блоков, " +
             plan.operations() + " операций. /ai cancel — остановить и откатить.");
+        if (plan.adjustedOperations() > 0)
+            tell(player, "Автоматически исправлены размеры " + plan.adjustedOperations()
+                + " операций. Излишне большие части уменьшены до безопасных границ.");
     }
 
     public void cancel(ServerPlayerEntity player) {
