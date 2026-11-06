@@ -1,0 +1,27 @@
+name: Build AI Builder Fabric
+on:
+  push:
+    branches: ['ai-builder']
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.8'
+      - name: Compile AI Builder Fabric 1.21.1
+        run: gradle -p AIBuilder build --no-daemon
+      - name: Upload mod JAR
+        uses: actions/upload-artifact@v7
+        with:
+          name: AIBuilder-Fabric-1.21.1
+          path: AIBuilder/build/libs/aibuilder-fabric-0.1.0.jar
+          if-no-files-found: error
