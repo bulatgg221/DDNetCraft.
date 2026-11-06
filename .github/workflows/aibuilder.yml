@@ -22,6 +22,6 @@ jobs:
       - name: Upload mod JAR
         uses: actions/upload-artifact@v7
         with:
-          name: AIBuilder-Fabric-1.21.1
-          path: AIBuilder/build/libs/aibuilder-fabric-0.3.0.jar
+          name: AIBuilder-Advanced-1.21.1
+          path: AIBuilder/build/libs/aibuilder-fabric-0.4.0.jar
           if-no-files-found: error
