@@ -1,6 +1,6 @@
-# AI Builder 0.8.0 — original prompt-to-structure generator
+# AI Builder 0.8.1 — original prompt-to-structure generator
 
-## 0.8.0 — actual AI-authored geometry, not prefab customization
+## 0.8.1 — actual AI-authored geometry, not prefab customization
 
 **F7 / `/ai build` now use original freeform model-produced block geometry.**
 The architecture system prompt requests detailed low-level Minecraft
@@ -33,7 +33,7 @@ Make a backup before construction. The mod has no dedicated-server support.
 
 ## Quick start
 1. Remove every old `aibuilder-fabric-0.x.jar` from the active Minecraft profile's `mods` folder.
-2. Install the **0.8.0** JAR, Fabric API and restart Minecraft.
+2. Install the **0.8.1** JAR, Fabric API and restart Minecraft.
 3. Load a singleplayer world in Creative Mode.
 4. Press **F8** or enter `/ai key` to configure Polza AI/OpenAI, model and API key.
 5. Press **F7** or enter `/ai prompt` for the **multiline 12,000-character prompt editor**.
@@ -91,7 +91,7 @@ than standard chat command lengths should be entered through the **F7 GUI**.
 GitHub Actions → **Build AI Builder Fabric** on branch `ai-builder` → Artifacts
 → **AIBuilder-Advanced-1.21.1**. Download ZIP and extract the JAR.
 
-## New in 0.8.0: correcting invalid material IDs
+## New in 0.8.1: correcting invalid material IDs
 LLM output may invent names such as `light_oak_planks` or
 `pale_oak_planks`, which are not available in Minecraft 1.21.1.
 The interpreter now resolves common aliases (e.g. light oak → birch)
@@ -99,7 +99,7 @@ against its safe palette without making another chargeable API request.
 Unknown or unsafe IDs are still rejected. GitHub Actions includes
 Java-only smoke tests for the aliases.
 
-## Malformed AI JSON recovery (0.8.0)
+## Malformed AI JSON recovery (0.8.1)
 LLM replies can contain Markdown fences, trailing commas, missing commas/colons,
 truncated arrays, or invalid objects. Plans now pass through a constrained
 normalizer and structural checks. Only syntax is repaired locally. Unsafe
@@ -112,7 +112,7 @@ Set `"retryMalformedJson": false` in `config/aibuilder/config.json` to disable.
 The retry never sends the malformed response or any secrets to the model.
 JUnit parser regression tests are run during Gradle build.
 
-## New in 0.8.0: repairing malformed operation type names
+## New in 0.8.1: repairing malformed operation type names
 Some models confuse geometric primitive types with Minecraft materials, e.g.
 `{"type":"lantern"}` instead of `{"type":"block","block":"lantern"}`.
 The compiler now accepts valid palette material IDs as operation names,
@@ -122,7 +122,7 @@ It also supports a bounded set of architecture terms like `window`,
 still fail closed. This local correction consumes **no extra API tokens**.
 JUnit tests cover lanterns, panes, stairs, trapdoors and safe rejection.
 
-## Version 0.8.0 — model presets and stale JAR detection
+## Version 0.8.1 — model presets and stale JAR detection
 Run `/ai version` to read the version actually loaded by Fabric; if unknown,
 check the active LabyMod profile and remove older AI Builder JARs.
 Added explicit safe `flower_pot` operation alias + regression tests.
@@ -134,7 +134,7 @@ default to GPT-5.4 mini; existing configurations keep their chosen model.
 Models can have different API costs and response-parameter compatibility.
 Improved structure-first architect prompt and retry token compatibility.
 
-## Fix in 0.8.0 — incompatible optional block properties
+## Fix in 0.8.1 — incompatible optional block properties
 AI output sometimes attaches `axis=x` to `smooth_stone_slab`,
 which does not support the `axis` state property. Such *optional*
 model-supplied decorative state hints are now skipped when the actual
@@ -144,7 +144,7 @@ Required properties (two-block doors/beds, procedural stair roofs)
 retain strict validation. The model system prompt now explains
 which properties apply to which block families.
 
-## New in 0.8.0 — deterministic layout for standalone houses
+## New in 0.8.1 — deterministic layout for standalone houses
 
 Freeform LLM coordinates often misalign doors, walls, window openings, roofs
 and stairwells even when all material names are correct. A new **house**
@@ -174,7 +174,7 @@ non-rectangular structures, with less deterministic placement quality.
 No model upgrade is required: GPT-4.1 can benefit from the new scheme.
 Back up your world first. Real gameplay validation remains necessary.
 
-## Version 0.8.0 — genuinely different architecture styles
+## Version 0.8.1 — genuinely different architecture styles
 
 The previous `house` macro was effectively a single design used for
 almost every prompt. The upgraded parametric engine now has seven distinct
@@ -200,8 +200,23 @@ remain enforced.
 All layouts are deterministic for a given set of parameters, and real
 in-game testing is still recommended. Terrain may require preparation.
 
-## 0.8.0 — castles, safer sizes, longer F7 input
+## 0.8.1 — castles, safer sizes, longer F7 input
 
 F7 now accepts 12,000 characters. Larger prompts may increase API token costs. Invalid zero dimensions are normalized; oversized geometry is reduced to the allowed world perimeter and overall block budget. Unsafe out-of-bounds origins still fail.
 
 Use `/ai castle` to test an aligned 35x35 castle without an API request. Model plans can use a single `castle` operation (25–39 blocks wide/deep) to generate walls, four towers, gate, courtyard, and keep. Back up your test world first.
+
+
+## 0.8.1 — fix table with oak_planks, and furniture/stair material coercion
+
+LLMs may supply `table` with `block=oak_planks`. In the previous
+compiler, tables unconditionally assigned Minecraft's `type=top` property,
+causing `minecraft:oak_planks has no property type`. In this release,
+recognized plank and stone materials are converted to their whitelisted
+slab variants for tabletops. If there is no corresponding slab, a full
+block is placed without the invalid state property. Chairs, staircase
+runs and decorative stair roofs also accept compatible plank-to-stair
+conversions. Unknown/unsafe block IDs are still rejected.
+
+F7 continues genuine AI-authored coordinate geometry, not prefab macros.
+Regression tests cover materials, fallbacks and allowlist enforcement.
