@@ -22,6 +22,8 @@ public final class BuilderConfig {
 
     public String provider = "polza";
     public String model = "openai/gpt-4.1-mini";
+    /** One extra billable API request if a model returns invalid or truncated JSON. */
+    public boolean retryMalformedJson = true;
     public int blocksPerTick = 300;
     public int maxBlocks = 30000;
     public int maxOperations = 100;
@@ -67,6 +69,8 @@ public final class BuilderConfig {
             if (config == null) throw new IllegalArgumentException("Пустой config.json");
             // Keep the existing OpenAI setup intact when upgrading from version 0.2.x.
             if (!parsed.has("provider")) config.provider = "openai";
+            // Gson initializes missing primitive boolean fields to false for old config files.
+            if (!parsed.has("retryMalformedJson")) config.retryMalformedJson = true;
             if (!"polza".equals(config.provider) && !"openai".equals(config.provider))
                 config.provider = "openai";
             if (config.model == null || !config.model.matches("[a-zA-Z0-9][a-zA-Z0-9._/-]{1,99}"))
