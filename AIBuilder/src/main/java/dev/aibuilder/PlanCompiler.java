@@ -49,7 +49,7 @@ public final class PlanCompiler {
         "stone_brick_wall cobblestone_wall deepslate_brick_wall " +
         "lantern soul_lantern chain torch wall_torch redstone_lamp bookshelf crafting_table " +
         "flower_pot potted_poppy potted_dandelion potted_blue_orchid " +
-        "poppy dandelion blue_orchid rose_bush peony lilac sunflowers short_grass fern " +
+        "poppy dandelion blue_orchid rose_bush peony lilac sunflower short_grass fern " +
         "red_carpet white_carpet blue_carpet green_carpet brown_carpet " +
         "red_bed white_bed blue_bed green_bed black_bed yellow_bed").split(" "));
 
@@ -254,9 +254,9 @@ public final class PlanCompiler {
         return state;
     }
     private static BlockState applyProperties(BlockState state, JsonObject op){
-        for(String key:List.of("facing","half","type","hinge","open","axis","shape","waterlogged")){
+        for(String key:List.of("facing","half","hinge","open","axis","shape","waterlogged","slab_type")){
             if(op.has(key) && !op.get(key).isJsonNull())
-                state=setProperty(state,key,op.get(key).getAsString());
+                state=setProperty(state,key.equals("slab_type")?"type":key,op.get(key).getAsString());
         }
         return state;
     }
