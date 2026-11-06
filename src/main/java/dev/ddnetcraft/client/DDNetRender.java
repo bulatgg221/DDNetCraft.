@@ -100,11 +100,48 @@ public final class DDNetRender {
             game.frozenTicks() > 0 ? 0xFF66BFFF : 0xFF8BFA99, true);
         draw.drawText(mc.textRenderer,
             "G toggle | Q hook | J shoot | 1-3 weapon | R restart", 12, 65, 0xFFCCCCCC, true);
+        // Always-visible 2D map gives spatial awareness regardless of camera direction.
+        renderMiniMap(draw, game, width);
         if (game.messageTicks() > 0) {
             String message = game.notice();
             int textWidth = mc.textRenderer.getWidth(message);
             draw.drawText(mc.textRenderer, Text.literal(message),
                 Math.max(0, (width - textWidth) / 2), 92, 0xFFFFFF75, true);
+        }
+    }
+    private static void renderMiniMap(DrawContext draw, DDNetClient game, int screenWidth) {
+        DDNetMap map = game.map();
+        if (map == null) return;
+        int scale = Math.max(2, Math.min(5, (screenWidth - 40) / map.width));
+        int left = Math.max(5, screenWidth - map.width * scale - 12);
+        int top = 12;
+        draw.fill(left - 3, top - 3, left + map.width * scale + 3,
+            top + map.height * scale + 3, 0xCB000000);
+        for (int y = 0; y < map.height; y++) {
+            for (int x = 0; x < map.width; x++) {
+                char tile = map.tile(x, y);
+                if (tile == '.') continue;
+                int rgb = switch (tile) {
+                    case 'U' -> 0xFFEB8C3A;
+                    case 'H' -> 0xFF9EB8CF;
+                    case 'K' -> 0xFFEF3333;
+                    case 'F' -> 0xFF358BEF;
+                    case 'E' -> 0xFF4DDE4C;
+                    case 'C' -> 0xFFFFCE45;
+                    case 'L' -> 0xFFA45FE8;
+                    default -> 0xFF777777;
+                };
+                int px = left + x * scale, py = top + (map.height - 1 - y) * scale;
+                draw.fill(px, py, px + scale, py + scale, rgb);
+            }
+        }
+        int px = left + (int)(game.localX() * scale);
+        int py = top + (int)((map.height - game.localY()) * scale);
+        draw.fill(px - 2, py - 4, px + 2, py + 1, 0xFFFFFFFF);
+        if (game.hook() != null) {
+            int hx = left + (int)(game.hook().x * scale);
+            int hy = top + (int)((map.height - game.hook().y) * scale);
+            draw.fill(hx - 1, hy - 1, hx + 2, hy + 2, 0xFF54F4FF);
         }
     }
 }
