@@ -1,4 +1,4 @@
-# AI Builder Advanced Building 0.4.0 — Fabric 1.21.1
+# AI Builder Advanced Building 0.4.1 — Fabric 1.21.1
 
 **Minecraft Java 1.21.1 + Fabric Loader + Fabric API + Java 21.** AI Builder
 places real blocks in a local **singleplayer Creative Mode** world.
@@ -6,7 +6,7 @@ Make a backup before construction. The mod has no dedicated-server support.
 
 ## Quick start
 1. Remove every old `aibuilder-fabric-0.x.jar` from the active Minecraft profile's `mods` folder.
-2. Install the **0.4.0** JAR, Fabric API and restart Minecraft.
+2. Install the **0.4.1** JAR, Fabric API and restart Minecraft.
 3. Load a singleplayer world in Creative Mode.
 4. Press **F8** or enter `/ai key` to configure Polza AI/OpenAI, model and API key.
 5. Press **F7** or enter `/ai prompt` for the **multiline 1,800-character prompt editor**.
@@ -63,3 +63,11 @@ than standard chat command lengths should be entered through the **F7 GUI**.
 ## Build
 GitHub Actions → **Build AI Builder Fabric** on branch `ai-builder` → Artifacts
 → **AIBuilder-Advanced-1.21.1**. Download ZIP and extract the JAR.
+
+## New in 0.4.1: correcting invalid material IDs
+LLM output may invent names such as `light_oak_planks` or
+`pale_oak_planks`, which are not available in Minecraft 1.21.1.
+The interpreter now resolves common aliases (e.g. light oak → birch)
+against its safe palette without making another chargeable API request.
+Unknown or unsafe IDs are still rejected. GitHub Actions includes
+Java-only smoke tests for the aliases.
