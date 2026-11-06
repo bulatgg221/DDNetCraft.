@@ -60,7 +60,7 @@ public final class PlanResponseParser {
             char ch = source.charAt(i);
             if (inString) {
                 if (escaped) escaped = false;
-                else if (ch == '\\\\') escaped = true;
+                else if (ch == '\\') escaped = true;
                 else if (ch == '"') inString = false;
             } else {
                 if (ch == '"') inString = true;
@@ -81,7 +81,7 @@ public final class PlanResponseParser {
             if (inString) {
                 result.append(ch);
                 if (escaped) escaped = false;
-                else if (ch == '\\\\') escaped = true;
+                else if (ch == '\\') escaped = true;
                 else if (ch == '"') inString = false;
             } else if (ch == '"') {
                 inString = true;
@@ -105,7 +105,7 @@ public final class PlanResponseParser {
             if (inString) {
                 result.append(ch);
                 if (escaped) escaped = false;
-                else if (ch == '\\\\') escaped = true;
+                else if (ch == '\\') escaped = true;
                 else if (ch == '"') inString = false;
             } else if (ch == '"') {
                 inString = true;
