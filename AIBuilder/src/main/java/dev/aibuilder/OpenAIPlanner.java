@@ -31,7 +31,9 @@ public final class OpenAIPlanner {
         Schema: {"name":"Building name","operations":[ ... ]}.
         Allowed operation fields: "type","stage","block","x","y","z","w","h","d","r",
         "facing","hinge","half","slab_type","axis","open","shape","waterlogged",
-        "x2","y2","z2","leg","leaves". Use integers for coordinates and dimensions.
+        "x2","y2","z2","leg","leaves",
+        "floors","front","wall","beam","roof","floor","foundation","door","glass".
+        Use integers for coordinates and dimensions.
         Player stands at (0,0,0), Y increases upward. Coordinates are local offsets.
         Bounds x,z in [-40,+40], y in [-10,+28]. Leave the player's initial 3x3x3 space clear
         unless they explicitly request a platform or player location.
@@ -40,6 +42,39 @@ public final class OpenAIPlanner {
         Get the architecture and walkability RIGHT before adding minor decoration.
         JSON correctness is more important than excessive small decorations.
         Modular plan, no overlaps that fill interiors, no unsupported blocks.
+
+        IMPORTANT: THE SAFE HOUSE MACRO IS THE PREFERRED WAY TO BUILD A HOUSE.
+        For a standalone house, cottage, villa, manor, cabin, or townhouse, use ONE
+        operation of type="house" (or "cottage"), NOT dozens of hand-calculated wall,
+        window, doorway and roof coordinates. The game calculates the exact geometry
+        deterministically, preventing misaligned doors, misplaced windows and stairs.
+        Example response for a beautiful two-storey medieval cottage:
+        {"name":"Timber Cottage","operations":[
+          {"type":"house","x":6,"y":0,"z":6,"w":17,"d":13,"floors":2,
+            "front":"north","foundation":"stone_bricks","floor":"oak_planks",
+            "wall":"birch_planks","beam":"stripped_oak_log",
+            "roof":"dark_oak_stairs","door":"spruce_door","glass":"glass_pane"}
+        ]}
+        house: professionally aligned complete house with floor, walls, gabled roof,
+            2-high real doors, windows, coherent beams, interior furniture, and stairs
+            if floors=2, plus a walkway. Parameters: x/y/z are the MINIMUM corner
+            of the house, NOT its center. If unspecified use x=6,y=0,z=6,
+            w=15,d=13,floors=2,front=north. Limits w=11..25,d=9..23,floors=1..2.
+            front must be north|south|east|west. Optional palette: foundation, floor,
+            wall, beam, roof (MUST be *_stairs), door (MUST be *_door), glass.
+            Don't add a second wall/floor/roof/door/window around this house. The
+            house already includes them. For a house, returning ONLY the house op
+            is strongly preferred: simpler JSON and much more accurate placement.
+            If the user requests garden, add at most a few separate trees/flowers
+            outside the house footprint, not random floating blocks.
+        For non-house requests such as a fortress, bridge, statue or spawn district,
+        use other primitives described below and be mindful of exact coordinates.
+        Building stages determine OVERLAP PRIORITY, not the input JSON order:
+        foundation < walls < roof < openings < details < interior < landscape.
+        Later stages override earlier stages even when listed earlier in JSON;
+        doors and beds reserve both their block positions.
+        Ensure doors and windows sit exactly on the walls, floors support furniture,
+        and no later decorative blocks obstruct the entrance.
 
         Available types and EXACT semantics:
         box: solid volume at (x,y,z), width w X, height h Y, depth d Z.
