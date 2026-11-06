@@ -60,15 +60,15 @@ public final class PlanResponseParser {
                 throw new IllegalArgumentException("Не указан тип операции.");
             for (Map.Entry<String,JsonElement> entry : object.entrySet()) {
                 String name = entry.getKey();
-                JsonElement value = entry.getValue();
+                JsonElement fieldValue = entry.getValue();
                 if (NUMERIC_FIELDS.contains(name)) {
-                    if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber())
+                    if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isNumber())
                         throw new IllegalArgumentException("Координата " + name + " должна быть числом.");
-                    double numeric = value.getAsDouble();
+                    double numeric = fieldValue.getAsDouble();
                     if (!Double.isFinite(numeric) || numeric != Math.rint(numeric))
                         throw new IllegalArgumentException("Координата " + name + " должна быть целым числом.");
                 } else if (STRING_FIELDS.contains(name)) {
-                    if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+                    if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isString())
                         throw new IllegalArgumentException("Поле " + name + " должно быть строкой.");
                 }
             }
