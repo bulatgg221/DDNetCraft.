@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "aibuilder",
+  "version": "${version}",
+  "name": "AI Builder — Prompt-to-Blocks",
+  "description": "Build real Minecraft structures from text prompts in a local singleplayer world.",
+  "authors": ["AI Builder"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": { "main": ["dev.aibuilder.AIBuilderMod"] },
+  "depends": { "fabricloader": ">=0.16.0", "minecraft": "~1.21.1", "java": ">=21", "fabric-api": "*" }
+}
