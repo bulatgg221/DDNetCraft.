@@ -10,7 +10,7 @@ final class OperationTypesTest {
         "dark_oak_stairs", "oak_slab", "glass_pane", "oak_door",
         "spruce_door", "red_bed", "oak_trapdoor", "oak_planks",
         "birch_planks", "oak_fence", "oak_log", "stone_bricks", "gravel",
-        "grass_block", "red_carpet", "flower_pot");
+        "grass_block", "red_carpet", "flower_pot", "potted_poppy", "poppy");
 
     private static void check(String type,String block,String expectedType,String expectedBlock) {
         OperationTypes.Resolved actual=OperationTypes.resolve(type,block,PALETTE);
@@ -33,6 +33,10 @@ final class OperationTypesTest {
         check("glass_pane",null,"block","glass_pane");
         check("oak_slab",null,"block","oak_slab");
         check("flower_pot",null,"block","flower_pot");
+        check("flowerpot",null,"block","flower_pot");
+        check("pot",null,"block","flower_pot");
+        check("potted_flower",null,"block","potted_poppy");
+        check("flower",null,"block","poppy");
         check("red_carpet",null,"block","red_carpet");
         check("oak_trapdoor",null,"block","oak_trapdoor");
     }
