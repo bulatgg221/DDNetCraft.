@@ -32,7 +32,9 @@ public final class OpenAIPlanner {
         Allowed operation fields: "type","stage","block","x","y","z","w","h","d","r",
         "facing","hinge","half","slab_type","axis","open","shape","waterlogged",
         "x2","y2","z2","leg","leaves",
-        "floors","front","wall","beam","roof","floor","foundation","door","glass".
+        "floors","front","wall","beam","roof","floor","foundation","door","glass",
+        "style","roof_style","window_style","roof_block","porch","balcony",
+        "chimney","garden".
         Use integers for coordinates and dimensions.
         Player stands at (0,0,0), Y increases upward. Coordinates are local offsets.
         Bounds x,z in [-40,+40], y in [-10,+28]. Leave the player's initial 3x3x3 space clear
@@ -43,6 +45,27 @@ public final class OpenAIPlanner {
         JSON correctness is more important than excessive small decorations.
         Modular plan, no overlaps that fill interiors, no unsupported blocks.
 
+        CRITICAL STYLE RULE: A "house" is NOT a fixed visual template anymore.
+        It is a style-aware engine. When the user asks for Japanese, modern,
+        Nordic/Viking, Alpine/chalet, medieval/Tudor, rustic forest or
+        classical brick architecture, ALWAYS explicitly set house.style to
+        japanese, modern, nordic, alpine, medieval, rustic or brick respectively.
+        If user asks for different house designs, vary style, roof_style,
+        window_style and details while keeping geometry exact.
+        Do not copy a generic medieval example for every request.
+        Style families:
+        - medieval: exposed oak beams, gabled roof, porch, tall brick chimney
+        - nordic: spruce walls, smaller windows, dark roof and chimney
+        - japanese: hip roof, wide windows, graceful overhang, wooden porch/garden
+        - modern: flat roof with parapet, white stone walls, wide windows, balcony
+        - alpine: gabled roof, timber framing, upper balcony and entry porch
+        - rustic: compact timber cottage with porch, flowerbeds, chimney
+        - brick: brick facade, hip roof and formal symmetry
+        User-provided dimensions and named colors/materials take precedence.
+        Explicit fields: roof_style=gable|hip|flat, window_style=classic|narrow|wide|tall,
+        porch/balcony/chimney/garden=true|false as JSON booleans.
+        Do not invent additional roof or facade types.
+        
         IMPORTANT: THE SAFE HOUSE MACRO IS THE PREFERRED WAY TO BUILD A HOUSE.
         For a standalone house, cottage, villa, manor, cabin, or townhouse, use ONE
         operation of type="house" (or "cottage"), NOT dozens of hand-calculated wall,
@@ -51,19 +74,25 @@ public final class OpenAIPlanner {
         Example response for a beautiful two-storey medieval cottage:
         {"name":"Timber Cottage","operations":[
           {"type":"house","x":6,"y":0,"z":6,"w":17,"d":13,"floors":2,
+            "style":"medieval","roof_style":"gable","window_style":"classic",
+            "porch":true,"chimney":true,"balcony":false,
             "front":"north","foundation":"stone_bricks","floor":"oak_planks",
             "wall":"birch_planks","beam":"stripped_oak_log",
             "roof":"dark_oak_stairs","door":"spruce_door","glass":"glass_pane"}
         ]}
-        house: professionally aligned complete house with floor, walls, gabled roof,
-            2-high real doors, windows, coherent beams, interior furniture, and stairs
-            if floors=2, plus a walkway. Parameters: x/y/z are the MINIMUM corner
+        house: style-aware complete house with floor, walls, optional gable/hip/flat
+            roof, 2-high real doors, coordinated windows, interior furniture and stairs
+            if floors=2, plus optional porch, balcony, chimney or garden.
+            Every supported style gives a DIFFERENT physical silhouette.
+            Parameters: x/y/z are the MINIMUM corner
             of the house, NOT its center. If unspecified use x=6,y=0,z=6,
-            w=15,d=13,floors=2,front=north. Limits w=11..25,d=9..23,floors=1..2.
+            w=15,d=13,floors=2,front=north,style=medieval.
+            Limits w=11..25,d=9..23,floors=1..2.
             front must be north|south|east|west. Optional palette: foundation, floor,
             wall, beam, roof (MUST be *_stairs), door (MUST be *_door), glass.
             Don't add a second wall/floor/roof/door/window around this house. The
-            house already includes them. For a house, returning ONLY the house op
+            house already includes them. The style and optional details control
+            its appearance; use them instead of custom random block placements. For a house, returning ONLY the house op
             is strongly preferred: simpler JSON and much more accurate placement.
             If the user requests garden, add at most a few separate trees/flowers
             outside the house footprint, not random floating blocks.
