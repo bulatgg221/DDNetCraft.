@@ -64,6 +64,15 @@ public final class OpenAIPlanner {
         hanging=true is optional when the lantern attaches below a ceiling.
         A two-block door is type=door with block=oak_door, NOT type=oak_door.
         For multiple adjacent glass panes use type=box with block=glass_pane.
+        Block state properties MUST match the actual block:
+        - axis=x|y|z is ONLY for orientable logs and pillar blocks.
+        - smooth_stone_slab and all *_slab blocks have slab_type=top|bottom|double;
+          NEVER give slabs axis, facing, hinge, or half.
+        - stairs accept facing and half=top|bottom (NOT axis).
+        - doors accept facing and hinge; door halves are placed automatically.
+        - lantern accepts hanging=true|false, not facing or axis.
+        - most ordinary blocks (glass, stone bricks, planks) have NO orientation.
+        Do not add properties speculatively: omit them unless supported.
         door: TWO actual interactive door blocks (lower and upper halves), at (x,y,z),
             material *_door, facing north|south|east|west, optional hinge left|right.
             Door at y=1 when floor is at y=0; DO NOT fill the door opening with stone.
