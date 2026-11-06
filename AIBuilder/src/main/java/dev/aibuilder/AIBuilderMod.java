@@ -2,6 +2,7 @@ package dev.aibuilder;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import java.util.Set;
 import java.util.Locale;
@@ -46,7 +47,7 @@ public final class AIBuilderMod implements ModInitializer {
                 .then(CommandManager.literal("help").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
-                    BuildService.tell(player, "/ai demo — спавн; /ai house <style> — 7 стилей дома без API.");
+                    BuildService.tell(player, "/ai demo — спавн; /ai house <style> — 7 стилей домов; /ai castle — крепость без API.");
                     BuildService.tell(player, "/ai version — какая версия мода действительно запущена.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 12000 символов.");
@@ -107,6 +108,32 @@ public final class AIBuilderMod implements ModInitializer {
                         return 1;
                     } catch (Exception e) {
                         BuildService.tell(player, "Ошибка demo: " + shortMessage(e));
+                        return 0;
+                    }
+                }))
+                .then(CommandManager.literal("castle").executes(ctx -> {
+                    ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                    MinecraftServer server = ctx.getSource().getServer();
+                    if (!allowed(player,server)) return 0;
+                    if (BuildService.INSTANCE.isBusy()) {
+                        BuildService.tell(player,"Сначала заверши предыдущую стройку."); return 0;
+                    }
+                    try {
+                        JsonObject root = new JsonObject();
+                        root.addProperty("name","Castle — four towers and a central keep");
+                        JsonObject castle = new JsonObject();
+                        castle.addProperty("type","castle");
+                        castle.addProperty("x",6);castle.addProperty("y",0);castle.addProperty("z",6);
+                        castle.addProperty("w",35);castle.addProperty("d",35);
+                        JsonArray operations = new JsonArray();
+                        operations.add(castle);
+                        root.add("operations",operations);
+                        PlanCompiler.CompiledPlan plan = PlanCompiler.compile(
+                            root.toString(), player.getBlockPos(),config);
+                        BuildService.INSTANCE.schedule(server,player,plan);
+                        return 1;
+                    } catch (Exception e) {
+                        BuildService.tell(player,"Ошибка castle: "+shortMessage(e));
                         return 0;
                     }
                 }))
