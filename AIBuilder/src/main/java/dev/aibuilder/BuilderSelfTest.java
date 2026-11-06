@@ -64,7 +64,7 @@ public final class BuilderSelfTest {
         list.add(s("purple stained glass pane","block","purple_stained_glass_pane",1));
         list.add(s("purple stained glass","block","purple_stained_glass",1));
         list.add(s("cyan stained glass pane","block","cyan_stained_glass_pane",1));
-        list.add(s("oak_planks tabletop","table","oak_planks",7,3,1,2));
+        list.add(s("oak_planks tabletop","table","oak_planks",10,3,1,2));
         list.add(s("spruce_planks chair","chair","spruce_planks",1));
         list.add(s("planks as two-block door","door","spruce_planks",2));
         list.add(s("wool as two-block bed","bed","purple_wool",2));
@@ -72,14 +72,14 @@ public final class BuilderSelfTest {
         list.add(s("colored bed as raw block","block","blue_bed",2));
         list.add(s("rose_bush with both halves","block","rose_bush",2));
         list.add(s("tall_grass with both halves","block","tall_grass",2));
-        list.add(s("spruce_planks roof stairs","roof_stairs","spruce_planks",9,5,1,1));
+        list.add(s("spruce_planks roof stairs","roof_stairs","spruce_planks",5,5,1,1));
         list.add(s("oak_planks hip roof","hip_roof","oak_planks",25,5,1,5));
         list.add(s("stairs_run planks","stairs_run","oak_planks",5,1,5,1));
-        list.add(s("straight wall","box","stone_bricks",12,6,3,2));
-        list.add(s("hollow room","hollow_box","stone_bricks",40,5,3,4));
-        list.add(s("round stone tower","hollow_cylinder","deepslate_bricks",40,1,5,1,3));
+        list.add(s("straight wall","box","stone_bricks",36,6,3,2));
+        list.add(s("hollow room","hollow_box","stone_bricks",54,5,3,4));
+        list.add(s("round stone tower","hollow_cylinder","deepslate_bricks",100,1,5,1,3));
         list.add(s("solid watch tower base","cylinder","stone_bricks",65,1,5,1,2));
-        list.add(s("archway","arch","stone_bricks",11,5,5,1));
+        list.add(s("archway","arch","stone_bricks",13,5,5,1));
         list.add(s("gable facade","gable_fill","stone_bricks",16,7,1,1));
         list.add(s("small sandstone sphere","sphere","sandstone",33,1,1,1,2));
         return list;
