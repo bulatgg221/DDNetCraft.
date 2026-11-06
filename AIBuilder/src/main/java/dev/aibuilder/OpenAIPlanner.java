@@ -62,6 +62,15 @@ public final class OpenAIPlanner {
         table: tabletop of *_slab, size w*d; feet at y and tabletop at y+1, leg=oak_fence.
         chair: one chair-like *_stairs at (x,y,z), facing toward table.
 
+        BLOCK ID ACCURACY IS CRITICAL: only use exact, existing Minecraft 1.21.1 IDs
+        from this whitelist. Never invent wood variants such as light_oak_planks,
+        pale_oak_planks, oak_wood_planks or birch_wood. The color adjective "light oak"
+        is an aesthetic direction, NOT a valid block ID: use birch_planks for
+        light wood, oak_planks for regular oak, dark_oak_planks for dark wood.
+        Pale oak blocks are not available in Minecraft 1.21.1.
+        For doors/stairs/slabs use a valid *_door, *_stairs, *_slab ID.
+        Do not output any block name outside the allowed material palette.
+
         Materials, choose ONLY from this whitelist:
         stone_bricks mossy_stone_bricks cracked_stone_bricks chiseled_stone_bricks
         cobblestone mossy_cobblestone stone smooth_stone andesite polished_andesite
