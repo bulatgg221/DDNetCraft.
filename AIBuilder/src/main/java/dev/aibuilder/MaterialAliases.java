@@ -17,7 +17,7 @@ public final class MaterialAliases {
         Map.entry("light_oak_log", "oak_log"),
         Map.entry("light_oak_leaves", "birch_leaves"),
         Map.entry("pale_oak_planks", "birch_planks"),
-        Map.entry("pale_oak_log", "birch_log"),
+        Map.entry("pale_oak_log", "oak_log"),
         Map.entry("pale_oak_wood", "oak_log"),
         Map.entry("light_wood_planks", "birch_planks"),
         Map.entry("white_wood_planks", "birch_planks"),
