@@ -277,18 +277,23 @@ public final class PlanCompiler {
         };
     }
     private static int stage(JsonObject op,String type){
-        String name=string(op,"stage",switch(type){
-            case "roof_stairs","gable_roof"->"roof";
-            case "door","block","line","arch"->"details";
-            case "bed","table","chair","stairs_run"->"interior";
-            case "tree"->"landscape";
-            default ->"walls";
-        });
-        return switch(name){
-            case "foundation"->0; case "walls","shell"->1; case "roof"->2;
-            case "openings"->3; case "details"->4; case "interior"->5;
-            case "landscape"->6;
-            default ->throw new IllegalArgumentException("Неизвестный этап: "+name);
+        String fallback=switch(type){
+            case "roof_stairs","hip_roof","gable_roof","gable_fill" -> "roof";
+            case "door","block","line","arch" -> "details";
+            case "bed","table","chair","stairs_run" -> "interior";
+            case "tree" -> "landscape";
+            default -> "walls";
+        };
+        String stage=StageAliases.normalize(string(op,"stage",fallback));
+        return switch(stage){
+            case "foundation" -> 0;
+            case "walls" -> 1;
+            case "roof" -> 2;
+            case "openings" -> 3;
+            case "details" -> 4;
+            case "interior" -> 5;
+            case "landscape" -> 6;
+            default -> throw new IllegalArgumentException("Неизвестный этап: "+stage);
         };
     }
     private static boolean isDoor(BlockState b){
