@@ -71,7 +71,7 @@ public final class PlanCompiler {
         // Model output remains bounded by the same overall operation and block limits.
         List<JsonElement> expanded = new ArrayList<>();
         for (JsonElement operation : ops) {
-            if (operation.isJsonObject() && Set.of("house","cottage","detailed_house","manor")
+            if (operation.isJsonObject() && Set.of("house","cottage","detailed_house","manor","villa","farmhouse","chalet","longhouse")
                     .contains(string(operation.getAsJsonObject(),"type",""))) {
                 expanded.addAll(HouseLayouts.expand(operation.getAsJsonObject()));
             } else expanded.add(operation);
