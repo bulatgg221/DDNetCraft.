@@ -86,7 +86,8 @@ public final class HousePromptStyle {
         if(has(p,"скандинав","викинг","норвеж","nordic","scandinavian","viking","norse"))return "nordic";
         if(has(p,"шале","альп","швейцар","alpine","chalet"))return "alpine";
         if(has(p,"кирпичн","brick mansion","brick manor","colonial"))return "brick";
-        if(has(p,"деревенск","лесн","избушк","сельск","фермерск","rustic","forest cottage","farmhouse"))return "rustic";
+        if(has(p,"деревенск","лесн","в лесу","возле леса","лесной дом","избушк",
+            "сельск","фермерск","rustic","forest","farmhouse"))return "rustic";
         if(has(p,"средневек","готич","фахверк","тюдор","medieval","tudor"))return "medieval";
         return null;
     }
