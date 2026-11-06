@@ -49,7 +49,18 @@ public final class OperationTypes {
     public static Resolved resolve(String rawType, String explicitBlock, Set<String> palette) {
         String type = rawType == null ? "" : rawType.trim().toLowerCase(Locale.ROOT)
             .replace(' ', '_').replace('-', '_');
-        if (NATIVE.contains(type)) return new Resolved(type, explicitBlock);
+        if (NATIVE.contains(type)) {
+            // AI frequently uses type=block for functional two-block structures.
+            // Route these through correct door/bed placement rather than leaving
+            // a broken half of a door or rejecting the complete building.
+            if(type.equals("block") && explicitBlock!=null && !explicitBlock.isBlank()){
+                String name=MaterialAliases.resolve(explicitBlock,palette);
+                if(name.endsWith("_door") && !name.endsWith("_trapdoor"))
+                    return new Resolved("door",name);
+                if(name.endsWith("_bed"))return new Resolved("bed",name);
+            }
+            return new Resolved(type, explicitBlock);
+        }
         Resolved descriptive = DESCRIPTIVE.get(type);
         if (descriptive != null) {
             String block = explicitBlock == null || explicitBlock.isBlank()
