@@ -19,9 +19,14 @@ jobs:
           gradle-version: '8.8'
       - name: Compile AI Builder Fabric 1.21.1
         run: gradle -p AIBuilder build --no-daemon
+      - name: Test common AI material aliases
+        run: |
+          mkdir -p /tmp/aibuilder-alias-tests
+          javac -d /tmp/aibuilder-alias-tests AIBuilder/src/main/java/dev/aibuilder/MaterialAliases.java AIBuilder/tests/dev/aibuilder/MaterialAliasesSmokeTest.java
+          java -cp /tmp/aibuilder-alias-tests dev.aibuilder.MaterialAliasesSmokeTest
       - name: Upload mod JAR
         uses: actions/upload-artifact@v7
         with:
           name: AIBuilder-Advanced-1.21.1
-          path: AIBuilder/build/libs/aibuilder-fabric-0.4.0.jar
+          path: AIBuilder/build/libs/aibuilder-fabric-0.4.1.jar
           if-no-files-found: error
