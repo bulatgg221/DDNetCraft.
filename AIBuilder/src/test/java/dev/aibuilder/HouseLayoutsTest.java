@@ -20,6 +20,20 @@ final class HouseLayoutsTest {
     private static int n(JsonObject op,String field){return op.get(field).getAsInt();}
     private static String t(JsonObject op,String field){return op.get(field).getAsString();}
 
+    @Test void allGeneratedOperationsAreSupportedByTheRuntimeInterpreter(){
+        Set<String> palette=Set.of(
+            "stone_bricks","oak_planks","birch_planks","stripped_oak_log",
+            "dark_oak_stairs","spruce_door","glass_pane","gravel",
+            "spruce_slab","bookshelf","glowstone","air","oak_stairs",
+            "red_bed","oak_fence");
+        for(JsonObject op:HouseLayouts.expand(input(2,"north"))){
+            OperationTypes.Resolved normalized = OperationTypes.resolve(
+                t(op,"type"),t(op,"block"),palette);
+            assertEquals(t(op,"type"),normalized.type(),
+                "Generator emitted an operation the compiler cannot interpret");
+        }
+    }
+
     @Test void generatesBoundedHouseWithRealDoorWindowsAndGables(){
         List<JsonObject> ops=HouseLayouts.expand(input(2,"north"));
         assertTrue(ops.size()<=100);
