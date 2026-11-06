@@ -203,13 +203,13 @@ public final class OpenAIPlanner {
                 } catch (InvalidPlanJson invalid) {
                     if (!config.retryMalformedJson)
                         throw new IllegalStateException(
-                            "ИИ прислал повреждённый JSON. Включи retryMalformedJson в config.json или сократи промпт.");
+                            "ИИ прислал неподходящий план. Включи retryMalformedJson в config.json или уточни запрос.");
                     AIBuilderMod.LOG.warn("AI Builder: malformed model plan; requesting one fresh shorter plan (extra API tokens may be charged).");
                     try {
                         return requestPlan(prompt,config,key,true);
                     } catch (InvalidPlanJson retryFailed) {
                         throw new IllegalStateException(
-                            "ИИ дважды прислал некорректный JSON. Попробуй более короткий запрос или другую модель.");
+                            "ИИ дважды не смог составить оригинальный план. Попробуй упростить постройку или другую модель.");
                     }
                 }
             } catch (Exception exception) {
@@ -293,9 +293,10 @@ public final class OpenAIPlanner {
             throw new InvalidPlanJson("ИИ не вернул текст плана.");
         String result = message.get("content").getAsString();
         try {
-            return PlanResponseParser.normalize(result);
+            String normalized = PlanResponseParser.normalize(result);
+            return GeneratedPlanGuard.requireOriginalGeometry(normalized);
         } catch (RuntimeException parse) {
-            throw new InvalidPlanJson("ИИ вернул синтаксически некорректный JSON.");
+            throw new InvalidPlanJson("ИИ прислал повреждённый JSON или готовый шаблон вместо новых координат.");
         }
     }
 
