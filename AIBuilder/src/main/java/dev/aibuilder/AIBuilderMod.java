@@ -3,6 +3,7 @@ package dev.aibuilder;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.aibuilder.client.AIBuilderClient;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
@@ -30,10 +31,19 @@ public final class AIBuilderMod implements ModInitializer {
         ServerLifecycleEvents.SERVER_STOPPED.register(server -> BuildService.INSTANCE.clear());
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
             dispatcher.register(CommandManager.literal("ai")
+                .then(CommandManager.literal("version").executes(ctx -> {
+                    String version = FabricLoader.getInstance().getModContainer("aibuilder")
+                        .map(container -> container.getMetadata().getVersion().getFriendlyString())
+                        .orElse("неизвестно");
+                    BuildService.tell(ctx.getSource().getPlayerOrThrow(),
+                        "AI Builder v" + version + " загружен. Проверь, что нет старых JAR в mods.");
+                    return 1;
+                }))
                 .then(CommandManager.literal("help").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
                     BuildService.tell(player, "/ai demo — спавн; /ai house — подробный дом с дверями без API.");
+                    BuildService.tell(player, "/ai version — какая версия мода действительно запущена.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 1800 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
