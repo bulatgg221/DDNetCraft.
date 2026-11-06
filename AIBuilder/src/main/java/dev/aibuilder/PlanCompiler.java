@@ -70,7 +70,9 @@ public final class PlanCompiler {
         for (JsonElement entry : ops) {
             if (!entry.isJsonObject()) throw new IllegalArgumentException("Каждая операция должна быть объектом.");
             JsonObject op = entry.getAsJsonObject();
-            String type = string(op,"type","box");
+            OperationTypes.Resolved resolved = OperationTypes.resolve(
+                string(op,"type","box"), string(op,"block",null), MATERIALS);
+            String type = resolved.type();
             int x = number(op,"x",0), y = number(op,"y",0), z = number(op,"z",0);
             int w = number(op,"w",1), h = number(op,"h",1), d = number(op,"d",1);
             int r = number(op,"r",2);
@@ -79,7 +81,8 @@ public final class PlanCompiler {
             if (Math.abs(x)>96 || Math.abs(z)>96 || Math.abs(y)>80)
                 throw new IllegalArgumentException("Смещение операции слишком велико.");
             int stage = stage(op, type);
-            BlockState material = block(string(op,"block", fallback(type)));
+            BlockState material = block(resolved.block() == null
+                ? fallback(type) : resolved.block());
             switch(type) {
                 case "box", "hollow_box" -> {
                     material = applyProperties(material,op);
@@ -256,7 +259,7 @@ public final class PlanCompiler {
         return state;
     }
     private static BlockState applyProperties(BlockState state, JsonObject op){
-        for(String key:List.of("facing","half","hinge","open","axis","shape","waterlogged","slab_type")){
+        for(String key:List.of("facing","half","hinge","open","axis","shape","waterlogged","slab_type","hanging")){
             if(op.has(key) && !op.get(key).isJsonNull())
                 state=setProperty(state,key.equals("slab_type")?"type":key,op.get(key).getAsString());
         }
