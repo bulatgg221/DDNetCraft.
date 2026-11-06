@@ -15,7 +15,7 @@ public final class OperationTypes {
 
     private static final Set<String> NATIVE = Set.of(
         "box", "hollow_box", "cylinder", "hollow_cylinder", "sphere",
-        "pyramid", "gable_roof", "roof_stairs", "line", "arch", "tree",
+        "pyramid", "gable_roof", "gable_fill", "roof_stairs", "line", "arch", "tree",
         "block", "chair", "door", "bed", "table", "stairs_run");
 
     private static final Map<String, Resolved> DESCRIPTIVE = Map.ofEntries(
