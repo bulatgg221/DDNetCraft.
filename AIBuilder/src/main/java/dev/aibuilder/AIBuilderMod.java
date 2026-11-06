@@ -33,7 +33,7 @@ public final class AIBuilderMod implements ModInitializer {
                 .then(CommandManager.literal("help").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
-                    BuildService.tell(player, "/ai demo — тестовая постройка без API-ключа.");
+                    BuildService.tell(player, "/ai demo — спавн; /ai house — подробный дом с дверями без API.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 1800 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
@@ -93,6 +93,22 @@ public final class AIBuilderMod implements ModInitializer {
                         return 1;
                     } catch (Exception e) {
                         BuildService.tell(player, "Ошибка demo: " + shortMessage(e));
+                        return 0;
+                    }
+                }))
+                .then(CommandManager.literal("house").executes(ctx -> {
+                    ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                    MinecraftServer server = ctx.getSource().getServer();
+                    if (!allowed(player, server)) return 0;
+                    if (BuildService.INSTANCE.isBusy()) { BuildService.tell(player, "Сначала завершите предыдущую стройку."); return 0; }
+                    try (InputStream in = AIBuilderMod.class.getResourceAsStream("/assets/aibuilder/plans/demo_house.json")) {
+                        if (in == null) throw new IllegalStateException("Демонстрационный план отсутствует.");
+                        String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+                        PlanCompiler.CompiledPlan plan = PlanCompiler.compile(json, player.getBlockPos(), config);
+                        BuildService.INSTANCE.schedule(server, player, plan);
+                        return 1;
+                    } catch (Exception e) {
+                        BuildService.tell(player, "Ошибка house: " + shortMessage(e));
                         return 0;
                     }
                 }))
