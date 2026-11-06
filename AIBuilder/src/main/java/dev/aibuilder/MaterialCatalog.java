@@ -68,7 +68,8 @@ public final class MaterialCatalog {
             for(String suffix : List.of(
                 "_stained_glass","_stained_glass_pane",
                 "_concrete","_terracotta","_glazed_terracotta",
-                "_wool","_carpet","_bed","_candle"))
+                "_wool","_carpet","_bed","_candle",
+                "_banner","_wall_banner"))
                 ids.add(color+suffix);
         }
 
@@ -163,7 +164,21 @@ public final class MaterialCatalog {
             smithing_table stonecutter grindstone loom lectern
             cartography_table fletching_table composter cauldron
             enchanting_table anvil chipped_anvil damaged_anvil
-            campfire soul_campfire bell
+            campfire soul_campfire bell candle nether_brick_fence
+            copper_grate exposed_copper_grate weathered_copper_grate oxidized_copper_grate
+            waxed_copper_grate waxed_exposed_copper_grate
+            waxed_weathered_copper_grate waxed_oxidized_copper_grate
+            copper_bulb exposed_copper_bulb weathered_copper_bulb oxidized_copper_bulb
+            waxed_copper_bulb waxed_exposed_copper_bulb
+            waxed_weathered_copper_bulb waxed_oxidized_copper_bulb
+            cut_copper exposed_cut_copper weathered_cut_copper oxidized_cut_copper
+            cut_copper_stairs exposed_cut_copper_stairs
+            weathered_cut_copper_stairs oxidized_cut_copper_stairs
+            cut_copper_slab exposed_cut_copper_slab
+            weathered_cut_copper_slab oxidized_cut_copper_slab
+            copper_door exposed_copper_door weathered_copper_door oxidized_copper_door
+            copper_trapdoor exposed_copper_trapdoor weathered_copper_trapdoor
+            oxidized_copper_trapdoor
             beehive bee_nest
             flower_pot potted_poppy potted_dandelion potted_blue_orchid
             poppy dandelion blue_orchid allium azure_bluet
