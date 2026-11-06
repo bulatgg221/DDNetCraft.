@@ -246,8 +246,10 @@ public final class PlanCompiler {
         return Registries.BLOCK.getId(b.getBlock()).getPath().endsWith("_bed");
     }
     private static BlockState block(String material){
-        String name=material.startsWith("minecraft:")?material.substring(10):material;
-        if(!MATERIALS.contains(name))throw new IllegalArgumentException("Неподдерживаемый блок: "+name);
+        String name=MaterialAliases.resolve(material,MATERIALS);
+        if (!name.equals(material) && !("minecraft:" + name).equals(material)) {
+            AIBuilderMod.LOG.info("AI Builder: corrected generated block '{}' to '{}'", material, name);
+        }
         Block block=Registries.BLOCK.get(Identifier.of("minecraft",name));
         BlockState state=block.getDefaultState();
         if(block instanceof LeavesBlock)state=state.with(LeavesBlock.PERSISTENT,true);
