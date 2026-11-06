@@ -148,6 +148,19 @@ public final class PlanCompiler {
                         for(int dz=0;dz<d;dz++)add(blocks,origin,cfg,x+dx,y+rise,z+dz,stair,stage);
                     }
                 }
+                case "hip_roof" -> {
+                    if(!material.getBlock().getTranslationKey().contains("stairs"))
+                        throw new IllegalArgumentException("hip_roof требует блок *_stairs");
+                    for(int dx=0;dx<w;dx++)for(int dz=0;dz<d;dz++){
+                        int sideX=Math.min(dx,w-1-dx),sideZ=Math.min(dz,d-1-dz);
+                        int rise=Math.min(sideX,sideZ);
+                        String facing=sideX<=sideZ
+                            ? (dx<w/2?"east":"west")
+                            : (dz<d/2?"south":"north");
+                        BlockState stair=setProperty(material,"facing",facing);
+                        add(blocks,origin,cfg,x+dx,y+rise,z+dz,stair,stage);
+                    }
+                }
                 case "line" -> {
                     material=applyProperties(material,op);
                     int x2=number(op,"x2",x),y2=number(op,"y2",y),z2=number(op,"z2",z);
