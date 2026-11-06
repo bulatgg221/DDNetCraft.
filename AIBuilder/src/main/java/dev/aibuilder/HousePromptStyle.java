@@ -38,6 +38,7 @@ public final class HousePromptStyle {
         }
         Integer floorCount=explicitFloors(prompt);
         String roof=roofFor(prompt);
+        String windows=windowsFor(prompt);
         Boolean porch=mentionBoolean(prompt,new String[]{"крыльц","веранд","porch","veranda"},
             new String[]{"без крыльца","без веранды","no porch","without porch"});
         Boolean balcony=mentionBoolean(prompt,new String[]{"балкон","balcony"},
@@ -51,10 +52,26 @@ public final class HousePromptStyle {
             if(!entry.isJsonObject())continue;
             JsonObject op=entry.getAsJsonObject();
             if(!HOUSE_TYPES.contains(string(op,"type","")))continue;
-            if(chosenStyle!=null){op.addProperty("style",chosenStyle);changed=true;}
+            if(chosenStyle!=null){
+                op.addProperty("style",chosenStyle);
+                // The model may copy roof_style=gable/window_style=classic from
+                // the example even for Japanese/modern architecture.
+                if(roof==null)op.addProperty("roof_style",switch(chosenStyle){
+                    case "japanese","brick" -> "hip";
+                    case "modern" -> "flat";
+                    default -> "gable";
+                });
+                if(windows==null)op.addProperty("window_style",switch(chosenStyle){
+                    case "modern","japanese","alpine" -> "wide";
+                    case "nordic" -> "narrow";
+                    default -> "classic";
+                });
+                changed=true;
+            }
             if(width>0){op.addProperty("w",width);op.addProperty("d",depth);changed=true;}
             if(floorCount!=null){op.addProperty("floors",floorCount);changed=true;}
             if(roof!=null){op.addProperty("roof_style",roof);changed=true;}
+            if(windows!=null){op.addProperty("window_style",windows);changed=true;}
             if(porch!=null){op.addProperty("porch",porch);changed=true;}
             if(balcony!=null){op.addProperty("balcony",balcony);changed=true;}
             if(chimney!=null){op.addProperty("chimney",chimney);changed=true;}
@@ -77,6 +94,13 @@ public final class HousePromptStyle {
         if(has(p,"плоск","flat roof"))return "flat";
         if(has(p,"вальмов","четырёхскат","четырехскат","hipped roof","hip roof"))return "hip";
         if(has(p,"двускат","gable roof","pitched roof"))return "gable";
+        return null;
+    }
+    private static String windowsFor(String p){
+        if(has(p,"узкие окна","узкими окнами","narrow windows"))return "narrow";
+        if(has(p,"широкие окна","большие окна","панорамные окна","wide windows",
+                 "panoramic windows"))return "wide";
+        if(has(p,"высокие окна","tall windows"))return "tall";
         return null;
     }
     private static Integer explicitFloors(String p){
