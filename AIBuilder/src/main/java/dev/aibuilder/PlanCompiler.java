@@ -75,6 +75,9 @@ public final class PlanCompiler {
             if (operation.isJsonObject() && Set.of("house","cottage","detailed_house","manor","villa","farmhouse","chalet","longhouse")
                     .contains(string(operation.getAsJsonObject(),"type",""))) {
                 expanded.addAll(HouseLayouts.expand(operation.getAsJsonObject()));
+            } else if (operation.isJsonObject() && Set.of("castle","fortress","citadel")
+                    .contains(string(operation.getAsJsonObject(),"type",""))) {
+                expanded.addAll(CastleLayouts.expand(operation.getAsJsonObject()));
             } else expanded.add(operation);
             if (expanded.size() > cfg.maxOperations)
                 throw new IllegalArgumentException("Слишком много операций после раскрытия дома: "
