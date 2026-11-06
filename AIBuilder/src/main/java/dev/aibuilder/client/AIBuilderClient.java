@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
@@ -15,11 +16,21 @@ import org.lwjgl.glfw.GLFW;
  * The key itself never appears in command arguments, chat messages or packet contents.
  */
 public final class AIBuilderClient implements ClientModInitializer {
+    private static volatile AIBuilderClient INSTANCE;
     private boolean openRequested = false;
+
+    /** May be invoked by the integrated server's /ai key command, but never from a dedicated server. */
+    public static void requestOpen() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        client.execute(() -> {
+            if (INSTANCE != null) INSTANCE.openRequested = true;
+        });
+    }
     private KeyBinding openKey;
 
     @Override
     public void onInitializeClient() {
+        INSTANCE = this;
         openKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.aibuilder.api_key",
             InputUtil.Type.KEYSYM,
