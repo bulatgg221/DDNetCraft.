@@ -258,10 +258,37 @@ public final class PlanCompiler {
         if(block instanceof LeavesBlock)state=state.with(LeavesBlock.PERSISTENT,true);
         return state;
     }
+    /**
+     * Model-provided decorative block properties are optional hints, not requirements.
+     * Ignore hints unsupported by the actual Minecraft block state, such as
+     * axis=x on smooth_stone_slab, instead of rejecting the entire plan.
+     *
+     * Internally required properties (door halves, bed parts, roof stair facing)
+     * continue to use the strict setProperty() below so invalid structures fail.
+     */
     private static BlockState applyProperties(BlockState state, JsonObject op){
-        for(String key:List.of("facing","half","hinge","open","axis","shape","waterlogged","slab_type","hanging")){
-            if(op.has(key) && !op.get(key).isJsonNull())
-                state=setProperty(state,key.equals("slab_type")?"type":key,op.get(key).getAsString());
+        for (String key : List.of("facing","half","hinge","open","axis","shape",
+                                  "waterlogged","slab_type","hanging")) {
+            if (!op.has(key) || op.get(key).isJsonNull()) continue;
+            String propertyName = key.equals("slab_type") ? "type" : key;
+            String value = op.get(key).getAsString();
+            boolean supported = false;
+            for (Property<?> property : state.getProperties()) {
+                if (!property.getName().equals(propertyName)) continue;
+                supported = true;
+                try {
+                    state = typedProperty(state, property, value);
+                } catch (IllegalArgumentException ignored) {
+                    AIBuilderMod.LOG.debug(
+                        "Ignoring unsupported block state value {}={} for {}",
+                        propertyName, value, Registries.BLOCK.getId(state.getBlock()));
+                }
+                break;
+            }
+            if (!supported) {
+                AIBuilderMod.LOG.debug("Ignoring inapplicable block state property {} for {}",
+                    propertyName, Registries.BLOCK.getId(state.getBlock()));
+            }
         }
         return state;
     }
