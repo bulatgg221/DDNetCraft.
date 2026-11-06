@@ -1,6 +1,41 @@
-# AI Builder 0.8.1 — original prompt-to-structure generator
+# AI Builder 0.9.0 — verified Minecraft 1.21.1 material catalog
 
-## 0.8.1 — actual AI-authored geometry, not prefab customization
+## Version 0.9.0 — systematic model-output error audit
+
+`purple_stained_glass_pane` is a valid Minecraft 1.21.1 block that was
+missing from the previous curated whitelist. The block palette has been
+centralized in `MaterialCatalog`, shared by both the server compiler and
+the AI system prompt. It now includes every stained glass/pane dye variant,
+all common wood furniture/doors, colored banners, architectural stones,
+copper building blocks and decorative materials.
+
+A full JUnit palette-registry test compares every whitelisted name against
+the **literal registered block IDs from Minecraft 1.21.1 Blocks.class**;
+it fails if a purported vanilla material is absent. Additional exhaustive
+tests verify all IDs across the material alias, operation type and
+stair/slab/door/bed conversion paths, including rejection of unsafe
+`tnt` / command-block materials.
+
+Model responses can now safely normalize common spelling mistakes, pane
+plurals and color spellings, stairs/slabs from matching solid materials,
+functional doors/beds, cardinal orientation and stage aliases. Quoted
+integers and booleans are converted only if unambiguous. Tall decorative
+plants are emitted with both lower and upper block halves.
+
+### In-game verification (Fabric / LabyMod)
+
+Run `/ai version` (expected `0.9.0`) and `/ai selftest`.
+The latter is a **read-only** test requiring no API key; it checks
+each palette ID in the live Minecraft registry, compiles every individual
+block through the actual interpreter, and also tests 21 representative
+building shape cases. It places nothing and makes no network request.
+
+Freeform F7 mode still asks the model to author unique geometry and
+coordinates, not built-in house/castle presets. Build quality, physical
+accessibility and all possible future LLM mistakes are not guaranteed;
+run real builds in a backed-up Creative test world.
+
+## 0.8.0 — actual AI-authored geometry, not prefab customization
 
 **F7 / `/ai build` now use original freeform model-produced block geometry.**
 The architecture system prompt requests detailed low-level Minecraft
