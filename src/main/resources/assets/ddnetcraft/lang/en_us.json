@@ -1,1 +1,10 @@
-{"item.ddnetcraft.hook":"DDNet Hook","item.ddnetcraft.unfreezer":"DDNet Unfreezer"}
+{
+  "key.category.ddnetcraft": "DDNetCraft Solo",
+  "key.ddnetcraft.toggle": "Toggle DDNet mode",
+  "key.ddnetcraft.hook": "Grappling hook (hold)",
+  "key.ddnetcraft.fire": "Fire weapon",
+  "key.ddnetcraft.restart": "Restart map",
+  "key.ddnetcraft.pistol": "Select Pistol",
+  "key.ddnetcraft.grenade": "Select Grenade",
+  "key.ddnetcraft.laser": "Select Laser"
+}
