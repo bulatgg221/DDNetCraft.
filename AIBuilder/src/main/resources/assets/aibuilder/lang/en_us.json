@@ -1,4 +1,5 @@
 {
   "key.category.aibuilder": "AI Builder",
-  "key.aibuilder.api_key": "Open API key settings (F8)"
+  "key.aibuilder.api_key": "Open API key settings (F8)",
+  "key.aibuilder.prompt": "Open detailed build prompt (F7)"
 }
