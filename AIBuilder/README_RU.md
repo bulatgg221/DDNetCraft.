@@ -1,9 +1,9 @@
-# AI Builder 0.4.0 Advanced Building
+# AI Builder 0.4.1 Advanced Building
 
 ## Установка
 Minecraft Java 1.21.1, Fabric Loader, Fabric API, Java 21.
 Открой папку `mods` именно своего профиля LabyMod, удали старые JAR
-AI Builder и положи `aibuilder-fabric-0.4.0.jar`. Перезапусти игру.
+AI Builder и положи `aibuilder-fabric-0.4.1.jar`. Перезапусти игру.
 
 ## Управление
 - **F8** или `/ai key` — окно Polza AI/OpenAI с ключом и моделью.
@@ -41,3 +41,10 @@ AI Builder и положи `aibuilder-fabric-0.4.0.jar`. Перезапусти 
 
 Ключ Polza хранится локально (`config/aibuilder/polza-key.txt`),
 ключ OpenAI отдельно (`api-key.txt`). Не публикуй их.
+
+## Исправление ошибок ИИ
+Начиная с версии 0.4.1, мод исправляет распространённые выдуманные
+названия блоков в JSON-планах без повторного платного обращения к API.
+Например, `light_oak_planks` → `birch_planks`, `pale_oak_planks`
+→ `birch_planks`, `glass_panels` → `glass_pane`.
+Некорректные или опасные неизвестные ID по-прежнему отклоняются.
