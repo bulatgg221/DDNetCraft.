@@ -143,7 +143,7 @@ public final class MaterialCatalog {
             """);
 
         add(ids, """
-            terracotta glazed_terracotta
+            terracotta
             grass_block dirt coarse_dirt rooted_dirt podzol mycelium
             mud packed_mud gravel sand red_sand clay snow_block ice packed_ice blue_ice
             calcite dripstone_block amethyst_block
@@ -154,6 +154,17 @@ public final class MaterialCatalog {
             lantern soul_lantern chain torch wall_torch soul_torch soul_wall_torch
             end_rod glass glass_pane iron_bars bookshelf chiseled_bookshelf
             crafting_table furnace smoker blast_furnace barrel
+            iron_block copper_block coal_block lapis_block redstone_block
+            gold_block diamond_block emerald_block netherite_block
+            moss_block moss_carpet hay_block bone_block
+            honeycomb_block honey_block slime_block
+            polished_diorite polished_granite polished_andesite
+            ladder scaffolding
+            smithing_table stonecutter grindstone loom lectern
+            cartography_table fletching_table composter cauldron
+            enchanting_table anvil chipped_anvil damaged_anvil
+            campfire soul_campfire bell
+            beehive bee_nest
             flower_pot potted_poppy potted_dandelion potted_blue_orchid
             poppy dandelion blue_orchid allium azure_bluet
             orange_tulip pink_tulip red_tulip white_tulip oxeye_daisy
