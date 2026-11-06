@@ -1,6 +1,10 @@
 package dev.aibuilder;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.util.Set;
+import java.util.Locale;
 import dev.aibuilder.client.AIBuilderClient;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -42,7 +46,7 @@ public final class AIBuilderMod implements ModInitializer {
                 .then(CommandManager.literal("help").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
-                    BuildService.tell(player, "/ai demo — спавн; /ai house — подробный дом с дверями без API.");
+                    BuildService.tell(player, "/ai demo — спавн; /ai house <style> — 7 стилей дома без API.");
                     BuildService.tell(player, "/ai version — какая версия мода действительно запущена.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 1800 символов.");
@@ -106,22 +110,11 @@ public final class AIBuilderMod implements ModInitializer {
                         return 0;
                     }
                 }))
-                .then(CommandManager.literal("house").executes(ctx -> {
-                    ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                    MinecraftServer server = ctx.getSource().getServer();
-                    if (!allowed(player, server)) return 0;
-                    if (BuildService.INSTANCE.isBusy()) { BuildService.tell(player, "Сначала завершите предыдущую стройку."); return 0; }
-                    try (InputStream in = AIBuilderMod.class.getResourceAsStream("/assets/aibuilder/plans/demo_house.json")) {
-                        if (in == null) throw new IllegalStateException("Демонстрационный план отсутствует.");
-                        String json = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-                        PlanCompiler.CompiledPlan plan = PlanCompiler.compile(json, player.getBlockPos(), config);
-                        BuildService.INSTANCE.schedule(server, player, plan);
-                        return 1;
-                    } catch (Exception e) {
-                        BuildService.tell(player, "Ошибка house: " + shortMessage(e));
-                        return 0;
-                    }
-                }))
+                .then(CommandManager.literal("house")
+                    .executes(ctx -> buildStyleDemo(ctx.getSource().getPlayerOrThrow(), "medieval"))
+                    .then(CommandManager.argument("style", StringArgumentType.word())
+                        .executes(ctx -> buildStyleDemo(ctx.getSource().getPlayerOrThrow(),
+                            StringArgumentType.getString(ctx,"style")))))
                 .then(CommandManager.literal("build")
                     .then(CommandManager.argument("prompt", StringArgumentType.greedyString()).executes(ctx -> {
                         return startBuild(ctx.getSource().getPlayerOrThrow(),
@@ -136,6 +129,58 @@ public final class AIBuilderMod implements ModInitializer {
             );
         });
         LOG.info("AI Builder singleplayer mod initialized");
+    }
+
+    private static int buildStyleDemo(ServerPlayerEntity player,String requestedStyle) {
+        MinecraftServer server=player.getServer();
+        if(server==null || !allowed(player,server))return 0;
+        if(BuildService.INSTANCE.isBusy()) {
+            BuildService.tell(player, "Сначала заверши предыдущую постройку.");
+            return 0;
+        }
+        String style=requestedStyle.toLowerCase(Locale.ROOT);
+        if(!Set.of("medieval","modern","japanese","nordic","alpine","rustic","brick").contains(style)){
+            BuildService.tell(player, "Стиль: medieval, modern, japanese, nordic, alpine, rustic, brick.");
+            return 0;
+        }
+        try (InputStream in=AIBuilderMod.class.getResourceAsStream("/assets/aibuilder/plans/demo_house.json")) {
+            if(in==null)throw new IllegalStateException("Демонстрационный план отсутствует.");
+            JsonObject root=JsonParser.parseString(new String(in.readAllBytes(),StandardCharsets.UTF_8))
+                .getAsJsonObject();
+            JsonObject house=root.getAsJsonArray("operations").get(0).getAsJsonObject();
+            house.addProperty("style",style);
+            // Preset demonstration styles should use their own default palettes.
+            for(String paletteKey: Set.of("foundation","floor","wall","beam","roof","roof_block","door","glass"))
+                house.remove(paletteKey);
+            switch(style){
+                case "modern","brick" -> {
+                    house.addProperty("w",23);house.addProperty("d",17);
+                }
+                case "alpine" -> {
+                    house.addProperty("w",21);house.addProperty("d",17);
+                }
+                case "nordic" -> {
+                    house.addProperty("w",19);house.addProperty("d",15);
+                }
+                case "japanese" -> {
+                    house.addProperty("w",19);house.addProperty("d",13);
+                    house.addProperty("floors",1);
+                }
+                case "rustic" -> {
+                    house.addProperty("w",13);house.addProperty("d",11);
+                    house.addProperty("floors",1);
+                }
+                default -> { }
+            }
+            root.addProperty("name","AI Builder: "+style+" style demo");
+            PlanCompiler.CompiledPlan plan=PlanCompiler.compile(root.toString(),
+                player.getBlockPos(),config);
+            BuildService.INSTANCE.schedule(server,player,plan);
+            return 1;
+        } catch(Exception e){
+            BuildService.tell(player,"Ошибка house: "+shortMessage(e));
+            return 0;
+        }
     }
 
     /** Runs on the integrated-server thread; also invoked by the client's multiline GUI. */
@@ -157,6 +202,7 @@ public final class AIBuilderMod implements ModInitializer {
                         var worldKey = player.getWorld().getRegistryKey();
                         BuildService.tell(player, "Генерирую архитектурный план… /ai status для проверки; /ai cancel для отмены.");
                         BuilderConfig snapshot = config;
+                        final String originalPrompt = prompt;
                         OpenAIPlanner.plan(prompt, snapshot).whenComplete((json, error) -> server.execute(() -> {
                             if (!service.isPending(ticket)) return;
                             service.endPlanning(ticket);
@@ -167,7 +213,8 @@ public final class AIBuilderMod implements ModInitializer {
                                 return;
                             }
                             try {
-                                PlanCompiler.CompiledPlan plan = PlanCompiler.compile(json, anchor, snapshot);
+                                PlanCompiler.CompiledPlan plan = PlanCompiler.compile(
+                                    HousePromptStyle.apply(json, originalPrompt), anchor, snapshot);
                                 service.schedule(server, current, plan);
                             } catch (Exception ex) {
                                 BuildService.tell(current, "План отклонён: " + shortMessage(ex));
