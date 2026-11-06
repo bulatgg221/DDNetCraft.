@@ -21,6 +21,9 @@ final class HousePromptStyleTest {
     @Test void russianJapaneseOverridesCopiedMedievalDefaults(){
         JsonObject j=transformed("Построй японский одноэтажный дом 19×13 с садом");
         assertEquals("japanese",j.get("style").getAsString());
+        assertEquals("hip",j.get("roof_style").getAsString(),
+            "Do not keep default gable roof when model copies example.");
+        assertEquals("wide",j.get("window_style").getAsString());
         assertEquals(1,j.get("floors").getAsInt());
         assertEquals(19,j.get("w").getAsInt());
         assertEquals(13,j.get("d").getAsInt());
