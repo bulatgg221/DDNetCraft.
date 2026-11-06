@@ -227,9 +227,8 @@ public final class AIBuilderMod implements ModInitializer {
                         if (ticket < 0) { BuildService.tell(player, "Другая постройка ещё обрабатывается."); return 0; }
                         BlockPos anchor = player.getBlockPos().toImmutable();
                         var worldKey = player.getWorld().getRegistryKey();
-                        BuildService.tell(player, "Генерирую архитектурный план… /ai status для проверки; /ai cancel для отмены.");
+                        BuildService.tell(player, "ИИ создаёт оригинальный чертёж с координатами… /ai status для проверки; /ai cancel для отмены.");
                         BuilderConfig snapshot = config;
-                        final String originalPrompt = prompt;
                         OpenAIPlanner.plan(prompt, snapshot).whenComplete((json, error) -> server.execute(() -> {
                             if (!service.isPending(ticket)) return;
                             service.endPlanning(ticket);
@@ -240,8 +239,17 @@ public final class AIBuilderMod implements ModInitializer {
                                 return;
                             }
                             try {
+                                // Freeform builds use the real model-generated coordinates.
+                                // Prebuilt HouseLayouts / CastleLayouts are reserved for /ai
+                                // house and /ai castle tests only.
+                                GeneratedPlanGuard.requireOriginalGeometry(json);
                                 PlanCompiler.CompiledPlan plan = PlanCompiler.compile(
-                                    HousePromptStyle.apply(json, originalPrompt), anchor, snapshot);
+                                    json, anchor, snapshot);
+                                GeneratedPlanArchive.trySave(json);
+                                BuildService.tell(current, "Оригинальный чертёж ИИ: "
+                                    + plan.operations() + " операций, "
+                                    + plan.blocks().size() + " блоков. "
+                                    + "План сохранён в config/aibuilder/last-generated-plan.json.");
                                 service.schedule(server, current, plan);
                             } catch (Exception ex) {
                                 BuildService.tell(current, "План отклонён: " + shortMessage(ex));
