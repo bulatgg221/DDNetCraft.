@@ -29,11 +29,37 @@ public final class BuilderSelfTest {
             checked++;
             Identifier id=Identifier.of("minecraft",name);
             var registered=Registries.BLOCK.getOrEmpty(id);
-            if(registered.isEmpty())
+            if(registered.isEmpty()) {
                 failures.add("Palette ID missing from runtime Minecraft registry: "+name);
-            else if(name.equals("air")?registered.get()!=Blocks.AIR:
-                    registered.get()==Blocks.AIR)
+                continue;
+            }
+            if(name.equals("air")?registered.get()!=Blocks.AIR:
+                    registered.get()==Blocks.AIR) {
                 failures.add("Palette ID resolved to the wrong block: "+name);
+                continue;
+            }
+            try {
+                // Unlike an ID-existence check, this invokes the real runtime
+                // geometry compiler and block-state defaults for EVERY palette ID.
+                JsonObject testOp=new JsonObject();
+                testOp.addProperty("type","block");
+                testOp.addProperty("block",name);
+                testOp.addProperty("x",6);testOp.addProperty("y",0);testOp.addProperty("z",6);
+                JsonObject testPlan=new JsonObject();
+                testPlan.addProperty("name","Material QA "+name);
+                JsonArray testOps=new JsonArray();testOps.add(testOp);
+                testPlan.add("operations",testOps);
+                int count=PlanCompiler.compile(testPlan.toString(),
+                    new BlockPos(0,100,0),config).blocks().size();
+                int expected=name.endsWith("_bed")
+                    || (name.endsWith("_door")&&!name.endsWith("_trapdoor"))
+                    || List.of("tall_grass","large_fern","sunflower",
+                               "rose_bush","peony","lilac").contains(name)?2:1;
+                if(count!=expected)failures.add(
+                    "Wrong block-state layout "+name+": "+count+" != "+expected);
+            }catch(Exception ex){
+                failures.add("Cannot compile "+name+": "+ex.getMessage());
+            }
         }
 
         int scenarios=0;
