@@ -56,7 +56,7 @@ public final class PlanCompiler {
 
     public record Placement(BlockPos pos, BlockState state) {}
     public record CompiledPlan(String name, List<Placement> blocks, int operations) {}
-    private record Staged(BlockPos pos, BlockState state, int stage) {}
+    private record Staged(BlockPos pos, BlockState state, int stage, boolean critical) {}
 
     public static CompiledPlan compile(String json, BlockPos origin, BuilderConfig cfg) {
         JsonElement rootElement = JsonParser.parseString(json);
@@ -67,8 +67,20 @@ public final class PlanCompiler {
         JsonArray ops = root.getAsJsonArray("operations");
         if (ops == null || ops.isEmpty() || ops.size() > cfg.maxOperations)
             throw new IllegalArgumentException("Слишком много операций: макс. " + cfg.maxOperations);
+        // Expand a parametric house to a deterministic, internally consistent design.
+        // Model output remains bounded by the same overall operation and block limits.
+        List<JsonElement> expanded = new ArrayList<>();
+        for (JsonElement operation : ops) {
+            if (operation.isJsonObject() && Set.of("house","cottage","detailed_house","manor")
+                    .contains(string(operation.getAsJsonObject(),"type",""))) {
+                expanded.addAll(HouseLayouts.expand(operation.getAsJsonObject()));
+            } else expanded.add(operation);
+            if (expanded.size() > cfg.maxOperations)
+                throw new IllegalArgumentException("Слишком много операций после раскрытия дома: "
+                    + expanded.size() + " (максимум " + cfg.maxOperations + ").");
+        }
         Map<BlockPos, Staged> blocks = new LinkedHashMap<>();
-        for (JsonElement entry : ops) {
+        for (JsonElement entry : expanded) {
             if (!entry.isJsonObject()) throw new IllegalArgumentException("Каждая операция должна быть объектом.");
             JsonObject op = entry.getAsJsonObject();
             OperationTypes.Resolved resolved = OperationTypes.resolve(
@@ -114,6 +126,17 @@ public final class PlanCompiler {
                 case "gable_roof" -> {
                     for(int dx=0;dx<w;dx++)for(int dz=0;dz<d;dz++)
                         add(blocks,origin,cfg,x+dx,y+Math.min(dx,w-1-dx),z+dz,material,stage);
+                }
+                case "gable_fill" -> {
+                    // Solid triangular facade beneath a 45-degree stair roof.
+                    // Width is the building's wall width; roof_stairs uses w+2 overhang.
+                    if(w < 5 || d > 3) throw new IllegalArgumentException(
+                        "gable_fill требует w>=5 и d<=3.");
+                    for(int dx=0;dx<w;dx++) {
+                        int rise=Math.min(dx+1,w-dx);
+                        for(int dy=0;dy<rise;dy++)for(int dz=0;dz<d;dz++)
+                            add(blocks,origin,cfg,x+dx,y+dy,z+dz,material,stage);
+                    }
                 }
                 case "roof_stairs" -> {
                     if(!material.getBlock().getTranslationKey().contains("stairs"))
@@ -215,7 +238,7 @@ public final class PlanCompiler {
         sequence.sort(Comparator.comparingInt(Staged::stage).thenComparingInt(s->s.pos().getY()));
         List<Placement> result=new ArrayList<>(sequence.size());
         for(Staged state:sequence)result.add(new Placement(state.pos(),state.state()));
-        return new CompiledPlan(name,result,ops.size());
+        return new CompiledPlan(name,result,expanded.size());
     }
 
     private static String fallback(String type){
@@ -318,9 +341,15 @@ public final class PlanCompiler {
             throw new IllegalArgumentException("Постройка вышла за границы (настройки config).");
         BlockPos pos=origin.add(x,y,z);
         if(pos.getY() < -64 || pos.getY()>319)throw new IllegalArgumentException("Выход за высоту мира.");
+        Staged prior=out.get(pos);
+        boolean critical=isDoor(state)||isBed(state);
+        // A later-printed wall must not overwrite a higher-priority opening or roof.
+        // Keep both parts of a functional door/bed from being overwritten by furniture.
+        if(prior != null && (prior.stage()>stage || (prior.critical() && !prior.state().equals(state))))
+            return;
         // Preserve the latest operation order for dependent multi-block structures.
         out.remove(pos);
-        out.put(pos,new Staged(pos,state,stage));
+        out.put(pos,new Staged(pos,state,stage,critical));
         if(out.size()>cfg.maxBlocks)
             throw new IllegalArgumentException("Превышен лимит "+cfg.maxBlocks+" блоков.");
     }
