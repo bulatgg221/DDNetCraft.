@@ -60,7 +60,8 @@ public final class OperationTypes {
             throw new IllegalArgumentException("Неизвестная форма: " + rawType
                 + " (используй type=block и block=<ID блока>).");
         }
-        if (actualBlock.endsWith("_door")) return new Resolved("door", actualBlock);
+        if (actualBlock.endsWith("_door") && !actualBlock.endsWith("_trapdoor"))
+            return new Resolved("door", actualBlock);
         if (actualBlock.endsWith("_bed")) return new Resolved("bed", actualBlock);
         return new Resolved("block", actualBlock);
     }
