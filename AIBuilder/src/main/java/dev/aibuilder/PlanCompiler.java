@@ -15,7 +15,7 @@ import net.minecraft.util.math.Direction;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -66,7 +66,7 @@ public final class PlanCompiler {
         JsonArray ops = root.getAsJsonArray("operations");
         if (ops == null || ops.isEmpty() || ops.size() > cfg.maxOperations)
             throw new IllegalArgumentException("Слишком много операций: макс. " + cfg.maxOperations);
-        Map<BlockPos, Staged> blocks = new HashMap<>();
+        Map<BlockPos, Staged> blocks = new LinkedHashMap<>();
         for (JsonElement entry : ops) {
             if (!entry.isJsonObject()) throw new IllegalArgumentException("Каждая операция должна быть объектом.");
             JsonObject op = entry.getAsJsonObject();
@@ -284,6 +284,8 @@ public final class PlanCompiler {
             throw new IllegalArgumentException("Постройка вышла за границы (настройки config).");
         BlockPos pos=origin.add(x,y,z);
         if(pos.getY() < -64 || pos.getY()>319)throw new IllegalArgumentException("Выход за высоту мира.");
+        // Preserve the latest operation order for dependent multi-block structures.
+        out.remove(pos);
         out.put(pos,new Staged(pos,state,stage));
         if(out.size()>cfg.maxBlocks)
             throw new IllegalArgumentException("Превышен лимит "+cfg.maxBlocks+" блоков.");
