@@ -77,11 +77,11 @@ public final class BuilderSelfTest {
         list.add(s("stairs_run planks","stairs_run","oak_planks",5,1,5,1));
         list.add(s("straight wall","box","stone_bricks",36,6,3,2));
         list.add(s("hollow room","hollow_box","stone_bricks",54,5,3,4));
-        list.add(s("round stone tower","hollow_cylinder","deepslate_bricks",100,1,5,1,3));
-        list.add(s("solid watch tower base","cylinder","stone_bricks",65,1,5,1,2));
+        list.add(s("round stone tower","hollow_cylinder","deepslate_bricks",100,1,5,1));
+        list.add(s("solid watch tower base","cylinder","stone_bricks",65,1,5,1));
         list.add(s("archway","arch","stone_bricks",13,5,5,1));
         list.add(s("gable facade","gable_fill","stone_bricks",16,7,1,1));
-        list.add(s("small sandstone sphere","sphere","sandstone",33,1,1,1,2));
+        list.add(s("small sandstone sphere","sphere","sandstone",33,1,1,1));
         return list;
     }
 
