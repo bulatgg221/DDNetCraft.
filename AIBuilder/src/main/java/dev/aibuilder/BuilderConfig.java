@@ -21,7 +21,7 @@ public final class BuilderConfig {
     private static final Path CONFIG_FILE = DIRECTORY.resolve("config.json");
 
     public String provider = "polza";
-    public String model = "openai/gpt-4.1-mini";
+    public String model = "openai/gpt-5.4-mini";
     /** One extra billable API request if a model returns invalid or truncated JSON. */
     public boolean retryMalformedJson = true;
     public int blocksPerTick = 300;
@@ -31,7 +31,7 @@ public final class BuilderConfig {
     public int maxVerticalDistance = 32;
 
     public static String defaultModel(String provider) {
-        return "polza".equals(provider) ? "openai/gpt-4.1-mini" : "gpt-4.1-mini";
+        return "polza".equals(provider) ? "openai/gpt-5.4-mini" : "gpt-4.1-mini";
     }
     public static String providerName(String provider) {
         return "polza".equals(provider) ? "Polza AI" : "OpenAI";
