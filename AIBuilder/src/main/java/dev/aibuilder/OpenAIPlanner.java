@@ -40,7 +40,8 @@ public final class OpenAIPlanner {
         Bounds x,z in [-40,+40], y in [-10,+28]. Leave the player's initial 3x3x3 space clear
         unless they explicitly request a platform or player location.
         For a single house aim for 25-50 purposeful operations, not excessive ornaments.
-        For complex spawns use at most 80 operations and <=25000 blocks.
+        For large castles use ONE castle operation. For other complex spawns,
+        use at most 80 operations and <=25000 blocks.
         Get the architecture and walkability RIGHT before adding minor decoration.
         JSON correctness is more important than excessive small decorations.
         Modular plan, no overlaps that fill interiors, no unsupported blocks.
@@ -96,8 +97,26 @@ public final class OpenAIPlanner {
             is strongly preferred: simpler JSON and much more accurate placement.
             If the user requests garden, add at most a few separate trees/flowers
             outside the house footprint, not random floating blocks.
-        For non-house requests such as a fortress, bridge, statue or spawn district,
-        use other primitives described below and be mindful of exact coordinates.
+        FORTRESS / CASTLE MODE: For a medieval castle, stone fortress or citadel,
+        use ONE type="castle" operation, not dozens of manually positioned
+        towers and walls. The engine computes a coherent real castle with
+        four corner towers, surrounding battlements, two-leaf entrance gate,
+        inner courtyard and central keep. Example JSON:
+        {"name":"Royal Stone Castle","operations":[
+          {"type":"castle","x":6,"y":0,"z":6,"w":35,"d":35,
+           "wall":"stone_bricks","trim":"cobblestone",
+           "floor":"dark_oak_planks","roof":"dark_oak_stairs",
+           "door":"dark_oak_door"}]}
+        Castle footprint: w/d 25 to 39 blocks; larger requests are safely
+        scaled down to fit the game world's perimeter. The castle includes
+        its own gate, towers and keep; don't add redundant walls or roofs.
+        For non-house non-castle requests such as a bridge, statue or spawn
+        district, use the other primitives below.
+        Ensure each custom block operation has POSITIVE integer dimensions:
+        w, h, d >= 1 (or omit unused dimensions), radius r >= 1.
+        Avoid enormous arbitrary boxes: the compiler clips them to its
+        configured world and per-build safety bounds; clipping may change
+        appearance. Prefer the house/castle macros for large buildings.
         Building stages determine OVERLAP PRIORITY, not the input JSON order:
         foundation < walls < roof < openings < details < interior < landscape.
         Later stages override earlier stages even when listed earlier in JSON;
