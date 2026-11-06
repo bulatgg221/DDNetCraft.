@@ -35,7 +35,18 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
                     BuildService.tell(player, "/ai demo — тестовая постройка без API-ключа.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
-                    BuildService.tell(player, "Открой /ai key или нажми F8 — выбор Polza AI, модели и ввод ключа.");
+                    BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 1800 символов.");
+                    BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
+                    return 1;
+                }))
+
+                .then(CommandManager.literal("prompt").executes(ctx -> {
+                    ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                    if (ctx.getSource().getServer().isDedicated()) {
+                        BuildService.tell(player, "Только для одиночного мира."); return 0;
+                    }
+                    AIBuilderClient.requestPromptOpen();
+                    BuildService.tell(player, "Открываю редактор промпта. Если не появился — нажми F7.");
                     return 1;
                 }))
                 .then(CommandManager.literal("key").executes(ctx -> {
@@ -87,10 +98,29 @@ public final class AIBuilderMod implements ModInitializer {
                 }))
                 .then(CommandManager.literal("build")
                     .then(CommandManager.argument("prompt", StringArgumentType.greedyString()).executes(ctx -> {
-                        ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                        MinecraftServer server = ctx.getSource().getServer();
+                        return startBuild(ctx.getSource().getPlayerOrThrow(),
+                            StringArgumentType.getString(ctx, "prompt"));
+
+                    })))
+                .executes(ctx -> {
+                    BuildService.tell(ctx.getSource().getPlayerOrThrow(),
+                        "Напиши /ai help. Пример: /ai build небольшой японский храм из дерева и камня");
+                    return 1;
+                })
+            );
+        });
+        LOG.info("AI Builder singleplayer mod initialized");
+    }
+
+    /** Runs on the integrated-server thread; also invoked by the client's multiline GUI. */
+    public static int startBuild(ServerPlayerEntity player, String prompt) {
+        MinecraftServer server = player.getServer();
+        if (server == null || !allowed(player,server)) return 0;
+
+                        
+                        
                         if (!allowed(player, server)) return 0;
-                        String prompt = StringArgumentType.getString(ctx, "prompt").strip();
+                        prompt = prompt.strip();
                         if (prompt.isEmpty() || prompt.length() > 1800) {
                             BuildService.tell(player, "Укажи описание длиной 1–1800 символов."); return 0;
                         }
@@ -119,15 +149,6 @@ public final class AIBuilderMod implements ModInitializer {
                             }
                         }));
                         return 1;
-                    })))
-                .executes(ctx -> {
-                    BuildService.tell(ctx.getSource().getPlayerOrThrow(),
-                        "Напиши /ai help. Пример: /ai build небольшой японский храм из дерева и камня");
-                    return 1;
-                })
-            );
-        });
-        LOG.info("AI Builder singleplayer mod initialized");
     }
 
     private static boolean allowed(ServerPlayerEntity player, MinecraftServer server) {
