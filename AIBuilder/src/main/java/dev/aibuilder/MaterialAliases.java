@@ -44,6 +44,21 @@ public final class MaterialAliases {
         Map.entry("dark_oak_wood_planks", "dark_oak_planks")
     );
 
+    /** True only for a single insertion/deletion/replacement, no loose similarity. */
+    private static boolean oneEditAway(String left,String right) {
+        int a=left.length(),b=right.length();
+        if(Math.abs(a-b)>1||left.equals(right))return false;
+        int i=0,j=0,edits=0;
+        while(i<a&&j<b) {
+            if(left.charAt(i)==right.charAt(j)){i++;j++;continue;}
+            if(++edits>1)return false;
+            if(a>b)i++;
+            else if(b>a)j++;
+            else{i++;j++;}
+        }
+        return edits+(a-i)+(b-j)==1;
+    }
+
     public static String resolve(String original, Set<String> whitelist) {
         if (original == null) throw new IllegalArgumentException("Пустое название блока");
         String name = original.trim().toLowerCase(Locale.ROOT)
@@ -87,6 +102,51 @@ public final class MaterialAliases {
             String pane = color + "_stained_glass_pane";
             if (whitelist.contains(pane)) return pane;
         }
+
+        // Canonicalize harmless singular/plural and Minecraft color name errors.
+        // Every proposed target must exist in the SAME approved palette.
+        if (candidate.endsWith("_panes")) {
+            String single=candidate.substring(0,candidate.length()-1);
+            if(whitelist.contains(single))return single;
+        }
+        if (candidate.endsWith("_glass_panel")) {
+            String pane=candidate.substring(0,candidate.length()-"_panel".length())+"_pane";
+            if(whitelist.contains(pane))return pane;
+        }
+        if (candidate.endsWith("_stained_pane")) {
+            String pane=candidate.substring(0,candidate.length()-"_stained_pane".length())
+                +"_stained_glass_pane";
+            if(whitelist.contains(pane))return pane;
+        }
+        if (candidate.startsWith("stained_glass_pane_")) {
+            String pane=candidate.substring("stained_glass_pane_".length())
+                +"_stained_glass_pane";
+            if(whitelist.contains(pane))return pane;
+        }
+        for(String suffix: new String[]{"_stair","_slabs","_fences","_doors","_bricks"}) {
+            if(!candidate.endsWith(suffix))continue;
+            String normalized=candidate.endsWith("_stair")?candidate+"s":
+                candidate.substring(0,candidate.length()-1);
+            if(whitelist.contains(normalized))return normalized;
+        }
+        if (candidate.startsWith("grey_") || candidate.startsWith("light_grey_")) {
+            String normalized=candidate.replace("grey_","gray_");
+            if(whitelist.contains(normalized))return normalized;
+        }
+
+        // Fix a SINGLE obvious character typo only when exactly one whitelisted
+        // block ID is one edit away. Ambiguous or larger guesses are rejected.
+        if(candidate.length()>=8) {
+            String match=null;
+            for(String allowed:whitelist) {
+                if(Math.abs(allowed.length()-candidate.length())>1)continue;
+                if(!oneEditAway(candidate,allowed))continue;
+                if(match!=null) {match=null;break;}
+                match=allowed;
+            }
+            if(match!=null)return match;
+        }
+
 
         // Do not silently turn unknown materials (e.g. TNT) into construction blocks.
         // Rejected IDs can be added as safe explicit aliases after review.
