@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.util.regex.Pattern;
+import java.util.Set;
+import java.util.Map;
 
 /**
  * Normalizes common LLM JSON formatting mistakes. Never executes model text,
@@ -15,6 +17,11 @@ import java.util.regex.Pattern;
 public final class PlanResponseParser {
     private PlanResponseParser() {}
 
+    private static final Set<String> NUMERIC_FIELDS = Set.of(
+        "x","y","z","x2","y2","z2","w","h","d","r");
+    private static final Set<String> STRING_FIELDS = Set.of(
+        "type","stage","block","facing","hinge","half","slab_type","axis",
+        "shape","leg","leaves","name");
     private static final Pattern MISSING_COLON = Pattern.compile(
         "(\\\"(?:name|operations|type|stage|block|x|y|z|x2|y2|z2|w|h|d|r|facing|hinge|half|slab_type|axis|open|shape|waterlogged|leg|leaves)\\\")\\s+(?=\\\"|\\{|\\[|-?[0-9]|true\\b|false\\b|null\\b)");
 
@@ -45,8 +52,27 @@ public final class PlanResponseParser {
         JsonArray ops = root.getAsJsonArray("operations");
         if (ops == null || ops.isEmpty() || ops.size() > 120)
             throw new IllegalArgumentException("Некорректный массив операций.");
-        for (JsonElement operation : ops)
+        for (JsonElement operation : ops) {
             if (!operation.isJsonObject()) throw new IllegalArgumentException("Операция не является объектом.");
+            JsonObject object = operation.getAsJsonObject();
+            if (!object.has("type") || !object.get("type").isJsonPrimitive()
+                || !object.getAsJsonPrimitive("type").isString())
+                throw new IllegalArgumentException("Не указан тип операции.");
+            for (Map.Entry<String,JsonElement> entry : object.entrySet()) {
+                String name = entry.getKey();
+                JsonElement value = entry.getValue();
+                if (NUMERIC_FIELDS.contains(name)) {
+                    if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber())
+                        throw new IllegalArgumentException("Координата " + name + " должна быть числом.");
+                    double numeric = value.getAsDouble();
+                    if (!Double.isFinite(numeric) || numeric != Math.rint(numeric))
+                        throw new IllegalArgumentException("Координата " + name + " должна быть целым числом.");
+                } else if (STRING_FIELDS.contains(name)) {
+                    if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString())
+                        throw new IllegalArgumentException("Поле " + name + " должно быть строкой.");
+                }
+            }
+        }
         return root;
     }
 
