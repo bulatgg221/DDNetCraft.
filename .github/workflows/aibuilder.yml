@@ -28,5 +28,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: AIBuilder-Advanced-1.21.1
-          path: AIBuilder/build/libs/aibuilder-fabric-0.4.4.jar
+          path: AIBuilder/build/libs/aibuilder-fabric-0.4.5.jar
           if-no-files-found: error
