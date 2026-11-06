@@ -345,7 +345,8 @@ public final class PlanCompiler {
         boolean critical=isDoor(state)||isBed(state);
         // A later-printed wall must not overwrite a higher-priority opening or roof.
         // Keep both parts of a functional door/bed from being overwritten by furniture.
-        if(prior != null && (prior.stage()>stage || (prior.critical() && !prior.state().equals(state))))
+        if(prior != null && !LayerOrder.mayReplace(prior.stage(),prior.critical(),
+            prior.state().equals(state),stage))
             return;
         // Preserve the latest operation order for dependent multi-block structures.
         out.remove(pos);
