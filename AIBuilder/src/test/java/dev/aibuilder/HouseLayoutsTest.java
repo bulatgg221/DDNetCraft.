@@ -72,7 +72,7 @@ final class HouseLayoutsTest {
         List<JsonObject> ops=HouseLayouts.expand(input(1,"south"));
         assertTrue(ops.size()<100);
         assertTrue(ops.stream().noneMatch(o->t(o,"type").equals("stairs_run")));
-        assertTrue(ops.stream().noneMatch(o->t(o,"type").equals("bed")));
+        assertTrue(ops.stream().anyMatch(o->t(o,"type").equals("bed")), "Even one floor should be furnished.");
     }
 
     @Test void rejectImpossibleHouseDimensions(){
