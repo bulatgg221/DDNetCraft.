@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.util.regex.Pattern;
+import java.util.ArrayList;
 import java.util.Set;
 import java.util.Map;
 
@@ -61,19 +62,41 @@ public final class PlanResponseParser {
             if (!object.has("type") || !object.get("type").isJsonPrimitive()
                 || !object.getAsJsonPrimitive("type").isString())
                 throw new IllegalArgumentException("Не указан тип операции.");
-            for (Map.Entry<String,JsonElement> entry : object.entrySet()) {
+            // Normalize safe quoted integer/boolean fields from LLM JSON.
+            // Work on a snapshot so adding a canonicalized value is deterministic.
+            for (Map.Entry<String,JsonElement> entry : new ArrayList<>(object.entrySet())) {
                 String name = entry.getKey();
                 JsonElement fieldValue = entry.getValue();
                 if (NUMERIC_FIELDS.contains(name)) {
+                    if(fieldValue.isJsonPrimitive() && fieldValue.getAsJsonPrimitive().isString()){
+                        String text=fieldValue.getAsString().strip();
+                        if(text.matches("-?[0-9]{1,10}")) {
+                            try {
+                                object.addProperty(name,Integer.parseInt(text));
+                                fieldValue=object.get(name);
+                            } catch(NumberFormatException ignored) {
+                                // Out-of-int-range numbers are rejected below.
+                            }
+                        }
+                    }
                     if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isNumber())
                         throw new IllegalArgumentException("Координата " + name + " должна быть числом.");
                     double numeric = fieldValue.getAsDouble();
-                    if (!Double.isFinite(numeric) || numeric != Math.rint(numeric))
-                        throw new IllegalArgumentException("Координата " + name + " должна быть целым числом.");
+                    if (!Double.isFinite(numeric) || numeric != Math.rint(numeric)
+                        || numeric<Integer.MIN_VALUE || numeric>Integer.MAX_VALUE)
+                        throw new IllegalArgumentException(
+                            "Координата " + name + " должна быть целым 32-битным числом.");
                 } else if (STRING_FIELDS.contains(name)) {
                     if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isString())
                         throw new IllegalArgumentException("Поле " + name + " должно быть строкой.");
                 } else if (BOOLEAN_FIELDS.contains(name)) {
+                    if(fieldValue.isJsonPrimitive() && fieldValue.getAsJsonPrimitive().isString()){
+                        String text=fieldValue.getAsString().strip();
+                        if(text.equalsIgnoreCase("true") || text.equalsIgnoreCase("false")) {
+                            object.addProperty(name,Boolean.parseBoolean(text));
+                            fieldValue=object.get(name);
+                        }
+                    }
                     if (!fieldValue.isJsonPrimitive() || !fieldValue.getAsJsonPrimitive().isBoolean())
                         throw new IllegalArgumentException("Поле " + name + " должно быть true или false.");
                 }
