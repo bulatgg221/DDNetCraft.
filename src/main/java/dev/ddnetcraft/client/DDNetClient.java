@@ -60,7 +60,7 @@ public final class DDNetClient implements ClientModInitializer {
     private DDNetMap map;
     private boolean enabled, finished, grounded;
     private boolean jumpHeld;
-    private int airJumpsLeft, frozenTicks, weaponCooldown, messageTicks, deaths;
+    private int airJumpsLeft, frozenTicks, freezeImmunityTicks, weaponCooldown, messageTicks, deaths;
     private int facing = 1;
     private long runTicks;
     private String notice = "";
@@ -234,7 +234,7 @@ public final class DDNetClient implements ClientModInitializer {
         checkpointX = x; checkpointY = y;
         vx = 0; vy = 0;
         grounded = false; jumpHeld = false; airJumpsLeft = 1;
-        frozenTicks = 0; weaponCooldown = 0;
+        frozenTicks = 0; freezeImmunityTicks = 0; weaponCooldown = 0;
         hook = null; projectiles.clear(); beams.clear();
         runTicks = 0; finished = false;
         if (mc.player != null) {
@@ -259,6 +259,7 @@ public final class DDNetClient implements ClientModInitializer {
         if (!enabled || mc.player == null || map == null) return;
         ClientPlayerEntity player = mc.player;
         if (weaponCooldown > 0) weaponCooldown--;
+        if (freezeImmunityTicks > 0) freezeImmunityTicks--;
         if (messageTicks > 0) messageTicks--;
         for (int i = beams.size() - 1; i >= 0; i--) {
             Beam b = beams.get(i);
@@ -268,7 +269,7 @@ public final class DDNetClient implements ClientModInitializer {
         boolean hookHeld = hookKey.isPressed();
         if (!hookHeld) hook = null;
         else if (hook == null && !finished && frozenTicks == 0) fireHook(player);
-        if (frozenTicks > 0) frozenTicks--;
+        if (frozenTicks > 0 && --frozenTicks == 0) freezeImmunityTicks = 50;
 
         if (!finished) {
             runTicks++;
@@ -339,8 +340,8 @@ public final class DDNetClient implements ClientModInitializer {
             deaths++;
             respawn();
             announce("DEATH — restart with R.");
-        } else if (foot == 'F' || upper == 'F') {
-            frozenTicks = Math.max(frozenTicks, 36);
+        } else if ((foot == 'F' || upper == 'F') && freezeImmunityTicks == 0 && frozenTicks == 0) {
+            frozenTicks = 36;
         } else if (foot == 'C') {
             checkpointX = x; checkpointY = y;
         } else if (foot == 'E' || upper == 'E') {
@@ -351,7 +352,7 @@ public final class DDNetClient implements ClientModInitializer {
     private void respawn() {
         x = checkpointX; y = checkpointY; vx = 0; vy = 0;
         hook = null; projectiles.clear(); beams.clear();
-        frozenTicks = 0; grounded = false; airJumpsLeft = 1;
+        frozenTicks = 0; freezeImmunityTicks = 0; grounded = false; airJumpsLeft = 1;
         runTicks = 0;
     }
 
