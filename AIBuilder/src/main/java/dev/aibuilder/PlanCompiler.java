@@ -72,7 +72,7 @@ public final class PlanCompiler {
             OperationSizes.Fitted size = OperationSizes.fit(
                 type,x,y,z,rawW,rawH,rawD,rawR,
                 cfg.maxHorizontalDistance,cfg.maxVerticalDistance,cfg.maxBlocks,
-                string(op,"facing","north"));
+                FacingHints.horizontal(string(op,"facing","north")));
             int w=size.w(), h=size.h(), d=size.d(), r=size.r();
             if(size.adjusted()) {
                 adjustedOperations++;
@@ -179,15 +179,31 @@ public final class PlanCompiler {
                     BlockState state=type.equals("chair")
                         ? stairMaterial(material,"chair") : material;
                     state=applyProperties(state,op);
-                    if(type.equals("chair"))state=setProperty(state,"facing",string(op,"facing","north"));
+                    if(type.equals("chair"))state=setProperty(state,"facing",
+                        FacingHints.horizontal(string(op,"facing","north")));
                     if(type.equals("block") && (isDoor(state)||isBed(state)))
                         throw new IllegalArgumentException("Для дверей и кроватей используй type=door/bed.");
-                    add(blocks,origin,cfg,x,y,z,state,stage);
+                    String actual=Registries.BLOCK.getId(state.getBlock()).getPath();
+                    if(type.equals("block") && Set.of("tall_grass","large_fern",
+                        "sunflower","rose_bush","peony","lilac").contains(actual)) {
+                        // Vanilla double-height vegetation has real lower and upper
+                        // states. A single lower half usually disappears on update.
+                        add(blocks,origin,cfg,x,y,z,setProperty(state,"half","lower"),stage);
+                        add(blocks,origin,cfg,x,y+1,z,setProperty(state,"half","upper"),stage);
+                    } else add(blocks,origin,cfg,x,y,z,state,stage);
                 }
                 case "door" -> {
-                    if(!isDoor(material))throw new IllegalArgumentException("door требует материал *_door.");
-                    BlockState bottom=setProperty(material,"facing",string(op,"facing","north"));
-                    bottom=setProperty(bottom,"hinge",string(op,"hinge","left"));
+                    String original=Registries.BLOCK.getId(material.getBlock()).getPath();
+                    String corrected=FurnitureMaterials.door(original,MATERIALS);
+                    if(corrected==null)throw new IllegalArgumentException(
+                        "door требует материал *_door или подходящую древесину: "+original);
+                    if(!corrected.equals(original))AIBuilderMod.LOG.info(
+                        "Door material '{}' normalized to '{}'",original,corrected);
+                    material=corrected.equals(original)?material:block(corrected);
+                    BlockState bottom=setProperty(material,"facing",
+                        FacingHints.horizontal(string(op,"facing","north")));
+                    bottom=setProperty(bottom,"hinge",
+                        FacingHints.hinge(string(op,"hinge","left")));
                     bottom=setProperty(bottom,"half","lower");
                     bottom=setProperty(bottom,"open","false");
                     BlockState top=setProperty(bottom,"half","upper");
@@ -195,8 +211,14 @@ public final class PlanCompiler {
                     add(blocks,origin,cfg,x,y+1,z,top,stage);
                 }
                 case "bed" -> {
-                    if(!isBed(material))throw new IllegalArgumentException("bed требует материал *_bed.");
-                    String dir=string(op,"facing","north");
+                    String original=Registries.BLOCK.getId(material.getBlock()).getPath();
+                    String corrected=FurnitureMaterials.bed(original,MATERIALS);
+                    if(corrected==null)throw new IllegalArgumentException(
+                        "bed требует материал *_bed или цветную шерсть: "+original);
+                    if(!corrected.equals(original))AIBuilderMod.LOG.info(
+                        "Bed material '{}' normalized to '{}'",original,corrected);
+                    material=corrected.equals(original)?material:block(corrected);
+                    String dir=FacingHints.horizontal(string(op,"facing","north"));
                     BlockState foot=setProperty(setProperty(material,"facing",dir),"part","foot");
                     BlockState head=setProperty(foot,"part","head");
                     Direction facing=Direction.byName(dir);
@@ -206,7 +228,7 @@ public final class PlanCompiler {
                 }
                 case "table" -> {
                     if(w>8||d>6)throw new IllegalArgumentException("Стол максимум 8x6.");
-                    BlockState legs=block(string(op,"leg","oak_fence"));
+                    BlockState legs=block(FurnitureMaterials.tableLeg(string(op,"leg","oak_fence"),MATERIALS));
                     String requested=string(op,"block","oak_slab");
                     String tabletop=FurnitureMaterials.tabletop(requested,MATERIALS);
                     if(!tabletop.equals(MaterialAliases.resolve(requested,MATERIALS)))
@@ -222,7 +244,7 @@ public final class PlanCompiler {
                         add(blocks,origin,cfg,x+dx,y,z+dz,legs,stage);
                 }
                 case "stairs_run" -> {
-                    String dir=string(op,"facing","north");
+                    String dir=FacingHints.horizontal(string(op,"facing","north"));
                     Direction facing=Direction.byName(dir);
                     if(facing==null||!facing.getAxis().isHorizontal())throw new IllegalArgumentException("stairs_run: неверный facing");
                     BlockState stair=setProperty(stairMaterial(material,"stairs_run"),"facing",dir);
