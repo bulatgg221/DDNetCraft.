@@ -75,7 +75,7 @@ public final class OpenAIPlanner {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 if (prompt.length() > 1800) throw new IllegalArgumentException("Промпт слишком длинный (максимум 1800 символов).");
-                String key = BuilderConfig.key();
+                String key = BuilderConfig.key(config);
                 JsonArray messages = new JsonArray();
                 JsonObject sys = new JsonObject(); sys.addProperty("role", "system"); sys.addProperty("content", SYSTEM);
                 JsonObject user = new JsonObject(); user.addProperty("role", "user"); user.addProperty("content", prompt);
@@ -84,20 +84,27 @@ public final class OpenAIPlanner {
                 request.addProperty("model", config.model);
                 request.add("messages", messages);
                 JsonObject format = new JsonObject(); format.addProperty("type", "json_object");
-                request.add("response_format", format);
-                request.addProperty("max_completion_tokens", 7500);
+                if ("openai".equals(config.provider)) {
+                    request.add("response_format", format);
+                    request.addProperty("max_completion_tokens", 7500);
+                } else {
+                    // Polza supports standard chat completions; not all routed models accept JSON mode.
+                    request.addProperty("max_tokens", 7500);
+                }
 
-                HttpRequest httpRequest = HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/chat/completions"))
+                HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(config.endpoint()))
                     .header("Authorization", "Bearer " + key)
                     .header("Content-Type", "application/json")
                     .timeout(Duration.ofSeconds(65))
                     .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(request), StandardCharsets.UTF_8))
                     .build();
                 HttpResponse<String> response = HTTP.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                if (response.statusCode() == 401) throw new IllegalStateException("API-ключ не принят (401).");
+                if (response.statusCode() == 401) throw new IllegalStateException("Ключ " + BuilderConfig.providerName(config.provider) + " не принят (401).");
+                if (response.statusCode() == 402) throw new IllegalStateException("Недостаточно средств или исчерпан лимит Polza AI (402).");
+                if (response.statusCode() == 404) throw new IllegalStateException("Модель не найдена (404): проверь ID " + config.model + ".");
                 if (response.statusCode() == 429) throw new IllegalStateException("Лимит API / баланс (429). Проверь usage и billing.");
                 if (response.statusCode() < 200 || response.statusCode() >= 300)
-                    throw new IllegalStateException("OpenAI API вернул HTTP " + response.statusCode());
+                    throw new IllegalStateException(BuilderConfig.providerName(config.provider) + " API вернул HTTP " + response.statusCode());
                 if (response.body().length() > 200_000) throw new IllegalStateException("Ответ API слишком большой.");
                 JsonObject body = JsonParser.parseString(response.body()).getAsJsonObject();
                 String result = body.getAsJsonArray("choices").get(0).getAsJsonObject()
