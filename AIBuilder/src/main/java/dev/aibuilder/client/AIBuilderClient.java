@@ -18,6 +18,7 @@ import org.lwjgl.glfw.GLFW;
 public final class AIBuilderClient implements ClientModInitializer {
     private static volatile AIBuilderClient INSTANCE;
     private boolean openRequested = false;
+    private boolean promptRequested = false;
 
     /** May be invoked by the integrated server's /ai key command, but never from a dedicated server. */
     public static void requestOpen() {
@@ -27,6 +28,14 @@ public final class AIBuilderClient implements ClientModInitializer {
         });
     }
     private KeyBinding openKey;
+    private KeyBinding promptKey;
+
+    public static void requestPromptOpen() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        client.execute(() -> {
+            if (INSTANCE != null) INSTANCE.promptRequested = true;
+        });
+    }
 
     @Override
     public void onInitializeClient() {
@@ -35,6 +44,13 @@ public final class AIBuilderClient implements ClientModInitializer {
             "key.aibuilder.api_key",
             InputUtil.Type.KEYSYM,
             GLFW.GLFW_KEY_F8,
+            "key.category.aibuilder"
+        ));
+
+        promptKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+            "key.aibuilder.prompt",
+            InputUtil.Type.KEYSYM,
+            GLFW.GLFW_KEY_F7,
             "key.category.aibuilder"
         ));
 
@@ -50,13 +66,23 @@ public final class AIBuilderClient implements ClientModInitializer {
             while (openKey.wasPressed()) {
                 openRequested = true;
             }
+            while (promptKey.wasPressed()) {
+                promptRequested = true;
+            }
             // Minecraft processes /aikey before dismissing the chat screen; opening here
             // on a subsequent client tick prevents ChatScreen from immediately closing us.
             if (openRequested && client.player != null && client.currentScreen == null) {
                 openRequested = false;
                 client.setScreen(new ApiKeyScreen());
             }
-            if (client.player == null) openRequested = false;
+            if (promptRequested && client.player != null && client.currentScreen == null) {
+                promptRequested = false;
+                client.setScreen(new PromptScreen());
+            }
+            if (client.player == null) {
+                openRequested = false;
+                promptRequested = false;
+            }
         });
     }
 }
