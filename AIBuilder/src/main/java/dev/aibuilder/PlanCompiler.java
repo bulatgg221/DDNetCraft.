@@ -16,6 +16,7 @@ import net.minecraft.util.math.Direction;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -267,15 +268,20 @@ public final class PlanCompiler {
      * continue to use the strict setProperty() below so invalid structures fail.
      */
     private static BlockState applyProperties(BlockState state, JsonObject op){
+        Set<String> available = new HashSet<>();
+        for (Property<?> property : state.getProperties()) available.add(property.getName());
         for (String key : List.of("facing","half","hinge","open","axis","shape",
                                   "waterlogged","slab_type","hanging")) {
             if (!op.has(key) || op.get(key).isJsonNull()) continue;
-            String propertyName = key.equals("slab_type") ? "type" : key;
+            String propertyName = BlockStateHints.compatibleProperty(key, available);
+            if (propertyName == null) {
+                AIBuilderMod.LOG.debug("Ignoring inapplicable block state property {} for {}",
+                    key, Registries.BLOCK.getId(state.getBlock()));
+                continue;
+            }
             String value = op.get(key).getAsString();
-            boolean supported = false;
             for (Property<?> property : state.getProperties()) {
                 if (!property.getName().equals(propertyName)) continue;
-                supported = true;
                 try {
                     state = typedProperty(state, property, value);
                 } catch (IllegalArgumentException ignored) {
@@ -284,10 +290,6 @@ public final class PlanCompiler {
                         propertyName, value, Registries.BLOCK.getId(state.getBlock()));
                 }
                 break;
-            }
-            if (!supported) {
-                AIBuilderMod.LOG.debug("Ignoring inapplicable block state property {} for {}",
-                    propertyName, Registries.BLOCK.getId(state.getBlock()));
             }
         }
         return state;
