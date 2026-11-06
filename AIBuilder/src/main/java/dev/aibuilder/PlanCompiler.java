@@ -55,7 +55,8 @@ public final class PlanCompiler {
         "red_bed white_bed blue_bed green_bed black_bed yellow_bed").split(" "));
 
     public record Placement(BlockPos pos, BlockState state) {}
-    public record CompiledPlan(String name, List<Placement> blocks, int operations) {}
+    public record CompiledPlan(String name, List<Placement> blocks,
+                               int operations, int adjustedOperations) {}
     private record Staged(BlockPos pos, BlockState state, int stage, boolean critical) {}
 
     public static CompiledPlan compile(String json, BlockPos origin, BuilderConfig cfg) {
@@ -80,19 +81,29 @@ public final class PlanCompiler {
                     + expanded.size() + " (максимум " + cfg.maxOperations + ").");
         }
         Map<BlockPos, Staged> blocks = new LinkedHashMap<>();
+        int adjustedOperations = 0;
+        int operationIndex = 0;
         for (JsonElement entry : expanded) {
+            operationIndex++;
             if (!entry.isJsonObject()) throw new IllegalArgumentException("Каждая операция должна быть объектом.");
             JsonObject op = entry.getAsJsonObject();
             OperationTypes.Resolved resolved = OperationTypes.resolve(
                 string(op,"type","box"), string(op,"block",null), MATERIALS);
             String type = resolved.type();
             int x = number(op,"x",0), y = number(op,"y",0), z = number(op,"z",0);
-            int w = number(op,"w",1), h = number(op,"h",1), d = number(op,"d",1);
-            int r = number(op,"r",2);
-            if (w < 1 || w > 80 || d < 1 || d > 80 || h < 1 || h > 48 || r < 1 || r > 20)
-                throw new IllegalArgumentException("Недопустимый размер операции.");
-            if (Math.abs(x)>96 || Math.abs(z)>96 || Math.abs(y)>80)
-                throw new IllegalArgumentException("Смещение операции слишком велико.");
+            int rawW = number(op,"w",1), rawH = number(op,"h",1), rawD = number(op,"d",1);
+            int rawR = number(op,"r",2);
+            OperationSizes.Fitted size = OperationSizes.fit(
+                type,x,y,z,rawW,rawH,rawD,rawR,
+                cfg.maxHorizontalDistance,cfg.maxVerticalDistance,cfg.maxBlocks,
+                string(op,"facing","north"));
+            int w=size.w(), h=size.h(), d=size.d(), r=size.r();
+            if(size.adjusted()) {
+                adjustedOperations++;
+                AIBuilderMod.LOG.warn("AI Builder adjusted operation {} ({}) dimensions: "
+                    + "{}x{}x{} r{} -> {}x{}x{} r{}",
+                    operationIndex,type,rawW,rawH,rawD,rawR,w,h,d,r);
+            }
             int stage = stage(op, type);
             BlockState material = block(resolved.block() == null
                 ? fallback(type) : resolved.block());
@@ -251,7 +262,7 @@ public final class PlanCompiler {
         sequence.sort(Comparator.comparingInt(Staged::stage).thenComparingInt(s->s.pos().getY()));
         List<Placement> result=new ArrayList<>(sequence.size());
         for(Staged state:sequence)result.add(new Placement(state.pos(),state.state()));
-        return new CompiledPlan(name,result,expanded.size());
+        return new CompiledPlan(name,result,expanded.size(),adjustedOperations);
     }
 
     private static String fallback(String type){
