@@ -190,7 +190,7 @@ public final class MaterialCatalog {
         Collections.sort(sorted);
         StringBuilder result = new StringBuilder();
         for(int i=0;i<sorted.size();i++) {
-            if(i>0) result.append(i%9==0?'\\n':' ');
+            if(i>0) result.append(i%9==0?'\n':' ');
             result.append(sorted.get(i));
         }
         return result.toString();
