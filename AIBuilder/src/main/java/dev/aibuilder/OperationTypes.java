@@ -19,6 +19,12 @@ public final class OperationTypes {
         "block", "chair", "door", "bed", "table", "stairs_run");
 
     private static final Map<String, Resolved> DESCRIPTIVE = Map.ofEntries(
+        // Older model schemas frequently use item labels as operation types.
+        Map.entry("flower_pot", new Resolved("block", "flower_pot")),
+        Map.entry("flowerpot", new Resolved("block", "flower_pot")),
+        Map.entry("pot", new Resolved("block", "flower_pot")),
+        Map.entry("potted_flower", new Resolved("block", "potted_poppy")),
+        Map.entry("flower", new Resolved("block", "poppy")),
         Map.entry("window", new Resolved("box", "glass_pane")),
         Map.entry("window_pane", new Resolved("box", "glass_pane")),
         Map.entry("glass_window", new Resolved("box", "glass_pane")),
