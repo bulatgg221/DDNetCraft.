@@ -18,12 +18,13 @@ public final class PlanResponseParser {
     private PlanResponseParser() {}
 
     private static final Set<String> NUMERIC_FIELDS = Set.of(
-        "x","y","z","x2","y2","z2","w","h","d","r");
+        "x","y","z","x2","y2","z2","w","h","d","r","floors");
     private static final Set<String> STRING_FIELDS = Set.of(
         "type","stage","block","facing","hinge","half","slab_type","axis",
-        "shape","leg","leaves","name");
+        "shape","leg","leaves","name","front","wall","beam","roof",
+        "floor","foundation","door","glass");
     private static final Pattern MISSING_COLON = Pattern.compile(
-        "(\\\"(?:name|operations|type|stage|block|x|y|z|x2|y2|z2|w|h|d|r|facing|hinge|half|slab_type|axis|open|shape|waterlogged|leg|leaves)\\\")\\s+(?=\\\"|\\{|\\[|-?[0-9]|true\\b|false\\b|null\\b)");
+        "(\\\"(?:name|operations|type|stage|block|x|y|z|x2|y2|z2|w|h|d|r|facing|hinge|half|slab_type|axis|open|shape|waterlogged|leg|leaves|floors|front|wall|beam|roof|floor|foundation|door|glass)\\\")\\s+(?=\\\"|\\{|\\[|-?[0-9]|true\\b|false\\b|null\\b)");
 
     public static String normalize(String response) {
         if (response == null || response.isBlank() || response.length() > 250_000)
