@@ -33,11 +33,12 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
                     BuildService.tell(player, "/ai demo — тестовая постройка без API-ключа.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
+                    BuildService.tell(player, "Введи /aikey для защищённого ввода ключа через окно игры.");
                     return 1;
                 }))
                 .then(CommandManager.literal("setup").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                    BuildService.tell(player, "Укажи API-ключ в config/aibuilder/api-key.txt (одной строкой).");
+                    BuildService.tell(player, "Введи /aikey: откроется окно для ввода и сохранения API-ключа.");
                     BuildService.tell(player, "Модель: " + config.model + "; настройка config/aibuilder/config.json.");
                     BuildService.tell(player, "OpenAI API оплачивается отдельно от подписки ChatGPT.");
                     return 1;
