@@ -19,7 +19,8 @@ import java.util.regex.Pattern;
 public final class HousePromptStyle {
     private HousePromptStyle() {}
     private static final Set<String> HOUSE_TYPES=Set.of(
-        "house","cottage","detailed_house","manor","villa");
+        "house","cottage","detailed_house","manor","villa",
+        "farmhouse","chalet","longhouse");
     private static final Pattern SIZES=Pattern.compile(
         "(?<!\\d)(\\d{2})\\s*[xх×*]\\s*(\\d{2})(?!\\d)");
 
