@@ -72,7 +72,10 @@ public final class OperationSizes {
                     default -> h;
                 };
                 h=Math.min(h,Math.max(1,space));
-                if(dir.equals("east")||dir.equals("west"))d=1;
+                if(dir.equals("east")||dir.equals("west")){
+                    w=Math.min(w,horizontalLimit-z+1);
+                    d=1;
+                }
                 else w=Math.min(w,horizontalLimit-x+1);
             }
             case "arch" -> {
@@ -114,6 +117,12 @@ public final class OperationSizes {
                 }
             }
         }
-        return new Fitted(w,h,d,r,w!=rawW||h!=rawH||d!=rawD||r!=rawR);
+        boolean adjusted = switch(type) {
+            case "block","door","bed","chair","line" -> false;
+            case "sphere" -> r!=rawR;
+            case "cylinder","hollow_cylinder","tree" -> h!=rawH || r!=rawR;
+            default -> w!=rawW || h!=rawH || d!=rawD;
+        };
+        return new Fitted(w,h,d,r,adjusted);
     }
 }
