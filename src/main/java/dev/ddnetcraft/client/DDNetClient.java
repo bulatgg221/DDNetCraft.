@@ -31,7 +31,7 @@ import java.util.Locale;
  * Vanilla movement is cancelled by ClientPlayerMovementMixin while enabled.
  */
 public final class DDNetClient implements ClientModInitializer {
-    public static final DDNetClient INSTANCE = new DDNetClient();
+    public static DDNetClient INSTANCE;
     public static final double PIXELS_PER_BLOCK = 32.0;
     private static final TagKey<net.minecraft.block.Block> UNHOOKABLE =
         TagKey.of(RegistryKeys.BLOCK, Identifier.of("ddnet", "unhookable"));
@@ -95,6 +95,7 @@ public final class DDNetClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        INSTANCE = this;
         config = DDNetConfig.load();
         String category = "key.category.ddnetcraft";
         toggleKey = key("key.ddnetcraft.toggle", GLFW.GLFW_KEY_G, category);
