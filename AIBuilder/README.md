@@ -16,3 +16,7 @@ Run in a singleplayer Creative Mode world and back up the world before testing.
 The secret is NEVER typed as a chat command, passed to the server chat, put into
 the command history, or included in source code. You can also delete the local key
 from that screen. The external OpenAI API requires its own paid billing plan.
+
+In LabyMod, `/aikey` may be intercepted by its chat handler. **F8** opens the
+same window with no chat command. The hotkey is configurable under Minecraft Controls.
+The client defers the screen opening until after the chat UI closes.
