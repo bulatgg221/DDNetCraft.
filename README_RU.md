@@ -44,6 +44,6 @@ JSON: поля `name`, `spawn: {x,y}`, массив строк `rows` **свер
 - Это **MVP исходников**: успешный Gradle build подтверждает компиляцию, но не заменяет функционального тестирования в Minecraft.
 
 ## Сборка JAR
-GitHub Actions → **Build Fabric mod** → успешный запуск → **Artifacts** → **DDNetCraft-Fabric-1.21.1**.
+GitHub Actions → **Build Fabric mod** → успешный запуск → **Artifacts** → **DDNetCraft-Solo-1.21.1**.
 
 Локально: Java 21 и Gradle 8.8, команда `gradle build`.
