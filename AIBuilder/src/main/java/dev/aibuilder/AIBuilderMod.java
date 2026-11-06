@@ -1,6 +1,7 @@
 package dev.aibuilder;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
+import dev.aibuilder.client.AIBuilderClient;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -20,6 +21,7 @@ public final class AIBuilderMod implements ModInitializer {
     private static BuilderConfig config;
 
     public static BuilderConfig config() { return config; }
+    public static void applyConfig(BuilderConfig updated) { config = updated; }
 
     @Override
     public void onInitialize() {
@@ -33,13 +35,23 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai build <описание> — ИИ строит по запросу (нужен API-ключ).");
                     BuildService.tell(player, "/ai demo — тестовая постройка без API-ключа.");
                     BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
-                    BuildService.tell(player, "Введи /aikey или нажми F8 для защищённого ввода ключа.");
+                    BuildService.tell(player, "Открой /ai key или нажми F8 — выбор Polza AI, модели и ввод ключа.");
+                    return 1;
+                }))
+                .then(CommandManager.literal("key").executes(ctx -> {
+                    ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
+                    if (ctx.getSource().getServer().isDedicated()) {
+                        BuildService.tell(player, "Это окно доступно только в одиночном мире."); return 0;
+                    }
+                    AIBuilderClient.requestOpen();
+                    BuildService.tell(player, "Открываю настройки API. Если окно не появилось — нажми F8.");
                     return 1;
                 }))
                 .then(CommandManager.literal("setup").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
-                    BuildService.tell(player, "Введи /aikey или нажми F8: откроется окно для ввода API-ключа.");
-                    BuildService.tell(player, "Модель: " + config.model + "; настройка config/aibuilder/config.json.");
+                    if (!ctx.getSource().getServer().isDedicated()) AIBuilderClient.requestOpen();
+                    BuildService.tell(player, "Настройки API: /ai key или F8.");
+                    BuildService.tell(player, "Провайдер: " + BuilderConfig.providerName(config.provider) + "; модель: " + config.model + ".");
                     BuildService.tell(player, "OpenAI API оплачивается отдельно от подписки ChatGPT.");
                     return 1;
                 }))
@@ -95,7 +107,7 @@ public final class AIBuilderMod implements ModInitializer {
                             ServerPlayerEntity current = server.getPlayerManager().getPlayer(player.getUuid());
                             if (current == null || !current.getWorld().getRegistryKey().equals(worldKey)) return;
                             if (error != null) {
-                                BuildService.tell(current, "Ошибка OpenAI API: " + shortMessage(error));
+                                BuildService.tell(current, "Ошибка API " + BuilderConfig.providerName(snapshot.provider) + ": " + shortMessage(error));
                                 return;
                             }
                             try {
