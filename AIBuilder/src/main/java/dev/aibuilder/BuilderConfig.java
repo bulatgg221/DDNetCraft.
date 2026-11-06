@@ -2,6 +2,8 @@ package dev.aibuilder;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.fabricmc.loader.api.FabricLoader;
 
 import java.nio.charset.StandardCharsets;
@@ -14,73 +16,126 @@ import java.util.Set;
 public final class BuilderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("aibuilder");
-    public static final Path KEY_FILE = DIRECTORY.resolve("api-key.txt");
+    private static final Path OPENAI_KEY_FILE = DIRECTORY.resolve("api-key.txt");
+    private static final Path POLZA_KEY_FILE = DIRECTORY.resolve("polza-key.txt");
     private static final Path CONFIG_FILE = DIRECTORY.resolve("config.json");
 
-    public String model = "gpt-4.1-mini";
+    public String provider = "polza";
+    public String model = "openai/gpt-4.1-mini";
     public int blocksPerTick = 300;
     public int maxBlocks = 30000;
     public int maxOperations = 100;
     public int maxHorizontalDistance = 48;
     public int maxVerticalDistance = 32;
 
+    public static String defaultModel(String provider) {
+        return "polza".equals(provider) ? "openai/gpt-4.1-mini" : "gpt-4.1-mini";
+    }
+    public static String providerName(String provider) {
+        return "polza".equals(provider) ? "Polza AI" : "OpenAI";
+    }
+    public String endpoint() {
+        return "polza".equals(provider)
+            ? "https://polza.ai/api/v1/chat/completions"
+            : "https://api.openai.com/v1/chat/completions";
+    }
+    private static Path keyFile(String provider) {
+        return "polza".equals(provider) ? POLZA_KEY_FILE : OPENAI_KEY_FILE;
+    }
+    private static String validateProvider(String provider) {
+        if (!"polza".equals(provider) && !"openai".equals(provider))
+            throw new IllegalArgumentException("Провайдер должен быть polza или openai.");
+        return provider;
+    }
+    private static String validateModel(String model) {
+        if (model == null || !model.matches("[a-zA-Z0-9][a-zA-Z0-9._/-]{1,99}"))
+            throw new IllegalArgumentException("Некорректный идентификатор модели.");
+        return model;
+    }
+
     public static BuilderConfig load() {
         try {
             Files.createDirectories(DIRECTORY);
-            if (!Files.isRegularFile(CONFIG_FILE)) {
-                BuilderConfig config = new BuilderConfig();
-                Files.writeString(CONFIG_FILE, GSON.toJson(config), StandardCharsets.UTF_8);
-                return config;
+            if (Files.notExists(CONFIG_FILE)) {
+                BuilderConfig defaults = new BuilderConfig();
+                Files.writeString(CONFIG_FILE, GSON.toJson(defaults), StandardCharsets.UTF_8);
+                return defaults;
             }
-            BuilderConfig config = GSON.fromJson(Files.readString(CONFIG_FILE), BuilderConfig.class);
-            if (config == null) throw new IllegalArgumentException("empty configuration");
-            config.model = config.model == null || !config.model.matches("[a-zA-Z0-9._-]{1,64}")
-                ? "gpt-4.1-mini" : config.model;
+            String raw = Files.readString(CONFIG_FILE, StandardCharsets.UTF_8);
+            JsonObject parsed = JsonParser.parseString(raw).getAsJsonObject();
+            BuilderConfig config = GSON.fromJson(parsed, BuilderConfig.class);
+            if (config == null) throw new IllegalArgumentException("Пустой config.json");
+            // Keep the existing OpenAI setup intact when upgrading from version 0.2.x.
+            if (!parsed.has("provider")) config.provider = "openai";
+            if (!"polza".equals(config.provider) && !"openai".equals(config.provider))
+                config.provider = "openai";
+            if (config.model == null || !config.model.matches("[a-zA-Z0-9][a-zA-Z0-9._/-]{1,99}"))
+                config.model = defaultModel(config.provider);
+            if ("polza".equals(config.provider) && !config.model.contains("/"))
+                config.model = "openai/" + config.model;
+            if ("openai".equals(config.provider) && config.model.startsWith("openai/"))
+                config.model = config.model.substring("openai/".length());
             config.blocksPerTick = Math.clamp(config.blocksPerTick, 10, 1000);
             config.maxBlocks = Math.clamp(config.maxBlocks, 100, 50000);
             config.maxOperations = Math.clamp(config.maxOperations, 1, 120);
             config.maxHorizontalDistance = Math.clamp(config.maxHorizontalDistance, 16, 64);
             config.maxVerticalDistance = Math.clamp(config.maxVerticalDistance, 8, 48);
             return config;
-        } catch (Exception exception) {
-            AIBuilderMod.LOG.warn("Could not load config; defaults will be used: {}", exception.toString());
+        } catch (Exception e) {
+            AIBuilderMod.LOG.warn("Cannot load config.json; using safe defaults: {}", e.toString());
             return new BuilderConfig();
         }
     }
 
-    /** The client GUI writes a private file; nothing secret is ever sent as a chat command. */
-    public static void storeKey(String input) throws Exception {
-        String key = input == null ? "" : input.strip();
-        if (key.length() < 20 || key.length() > 256 || !key.startsWith("sk-")
-            || key.chars().anyMatch(c -> Character.isWhitespace(c) || c < 33 || c > 126)) {
-            throw new IllegalArgumentException("Invalid API key format.");
-        }
+    public static BuilderConfig saveProviderAndModel(String provider, String model) throws Exception {
+        validateProvider(provider);
+        validateModel(model);
+        if ("polza".equals(provider) && !model.contains("/"))
+            throw new IllegalArgumentException("Для Polza укажи ID вида openai/gpt-4.1-mini.");
+        BuilderConfig config = load();
+        config.provider = provider;
+        config.model = model;
         Files.createDirectories(DIRECTORY);
-        Files.writeString(KEY_FILE, key + System.lineSeparator(), StandardCharsets.UTF_8,
+        Files.writeString(CONFIG_FILE, GSON.toJson(config), StandardCharsets.UTF_8,
+            StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        return config;
+    }
+
+    /** Secrets are stored per provider, never copied to a different API service. */
+    public static void storeKey(String provider, String input) throws Exception {
+        validateProvider(provider);
+        String key = input == null ? "" : input.strip();
+        boolean validPrefix = "polza".equals(provider)
+            ? key.startsWith("pza_") || key.startsWith("sk-polza-")
+            : key.startsWith("sk-");
+        if (!validPrefix || key.length() < 20 || key.length() > 256 ||
+            key.chars().anyMatch(c -> Character.isWhitespace(c) || c < 33 || c > 126))
+            throw new IllegalArgumentException("Неверный формат ключа выбранного провайдера.");
+        Files.createDirectories(DIRECTORY);
+        Path file = keyFile(provider);
+        Files.writeString(file, key + System.lineSeparator(), StandardCharsets.UTF_8,
             StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
         try {
-            Files.setPosixFilePermissions(KEY_FILE, Set.of(
-                PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
+            Files.setPosixFilePermissions(file, Set.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE));
         } catch (UnsupportedOperationException ignored) {
-            // Windows profile ACLs apply instead of POSIX modes.
+            // The host OS (such as Windows) applies its native file permissions.
         }
     }
 
-    public static boolean hasStoredKey() {
-        return Files.isRegularFile(KEY_FILE);
+    public static boolean hasStoredKey(String provider) {
+        return Files.isRegularFile(keyFile(validateProvider(provider)));
     }
-
-    public static void deleteStoredKey() throws java.io.IOException {
-        Files.deleteIfExists(KEY_FILE);
+    public static void deleteStoredKey(String provider) throws java.io.IOException {
+        Files.deleteIfExists(keyFile(validateProvider(provider)));
     }
-
-    public static String key() throws Exception {
-        String environment = System.getenv("OPENAI_API_KEY");
+    public static String key(BuilderConfig config) throws Exception {
+        String environment = System.getenv("polza".equals(config.provider) ? "POLZA_API_KEY" : "OPENAI_API_KEY");
         if (environment != null && !environment.isBlank()) return environment.strip();
-        if (!Files.isRegularFile(KEY_FILE)) throw new IllegalStateException(
-            "Введи /aikey в Minecraft, вставь ключ в закрытое поле и сохрани. Не отправляй ключ в чат!");
-        String key = Files.readString(KEY_FILE, StandardCharsets.UTF_8).strip();
-        if (!key.startsWith("sk-")) throw new IllegalStateException("Файл api-key.txt не содержит ключ OpenAI API.");
+        Path file = keyFile(validateProvider(config.provider));
+        if (!Files.isRegularFile(file)) throw new IllegalStateException(
+            "Ключ для " + providerName(config.provider) + " не найден. Введи /ai key или нажми F8.");
+        String key = Files.readString(file, StandardCharsets.UTF_8).strip();
+        if (key.isEmpty()) throw new IllegalStateException("Сохранённый API-ключ пуст.");
         return key;
     }
 }
