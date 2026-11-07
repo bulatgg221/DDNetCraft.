@@ -79,9 +79,17 @@ public final class BuildQualityAnalyzer {
             if(effectiveBlocks>300 && roofs==0 &&
                 (query.contains("крыш")||query.contains("roof")))
                 warnings.add("Не обнаружены ступени/плиты крыши; проверь перекрытия.");
-            if((query.contains("замок")||query.contains("castle"))&&
+            int requestedTowers=RequestedFeatures.towers(query);
+            int requestedFloors=RequestedFeatures.floors(query);
+            if(requestedTowers>0 && architecture.declaredTowers()<requestedTowers)
+                warnings.add("Запрошено башен: "+requestedTowers+
+                    "; в плане отмечено: "+architecture.declaredTowers()+".");
+            else if((query.contains("замок")||query.contains("castle"))&&
                 architecture.declaredTowers()==0)
                 warnings.add("Нет размеченных башен в архитектурных зонах.");
+            if(requestedFloors>1 && architecture.regions().isEmpty())
+                warnings.add("Запрошено этажей: "+requestedFloors+
+                    ", но модель не описала уровни помещений.");
             // Multi-level projects need a stated connection; check semantics,
             // not merely stair blocks (a staircase alone doesn't prove access).
             if((query.contains("этаж")||query.contains("floor")) &&
