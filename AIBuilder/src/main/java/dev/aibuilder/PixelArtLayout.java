@@ -55,29 +55,13 @@ public final class PixelArtLayout {
     }
 
     public static Canvas parse(JsonObject op, Set<String> allowed) {
-        if(!op.has("rows") || !op.get("rows").isJsonArray())
-            throw new IllegalArgumentException(
-                "pixel_art: нужен массив rows — строки одинаковой ширины, сверху вниз.");
-        JsonArray jsonRows=op.getAsJsonArray("rows");
-        if(jsonRows.isEmpty()||jsonRows.size()>64)
-            throw new IllegalArgumentException("pixel_art: высота 1–64 пикселя.");
-        List<String> rows=new ArrayList<>(jsonRows.size());
-        int width=-1;
-        for(JsonElement element:jsonRows){
-            if(!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString())
-                throw new IllegalArgumentException("pixel_art: каждая строка rows должна быть текстом.");
-            String line=element.getAsString();
-            if(width<0)width=line.length();
-            if(width<1 || width>64 || line.length()!=width)
-                throw new IllegalArgumentException(
-                    "pixel_art: все строки обязаны иметь одинаковую ширину 1–64.");
-            rows.add(line);
-        }
-        int height=rows.size();
-        if(op.has("w")&&op.get("w").getAsInt()!=width)
-            throw new IllegalArgumentException("pixel_art: w не совпадает с длиной строк.");
-        if(op.has("h")&&op.get("h").getAsInt()!=height)
-            throw new IllegalArgumentException("pixel_art: h не совпадает с числом строк.");
+        // Model-drawn rows may differ by a few characters. Normalize only
+        // minor row length errors locally, never with an extra API call.
+        // ArtworkMode already canonicalizes portrait responses in-place.
+        PixelArtRows.Fixed fixed=PixelArtRows.repair(op,false);
+        List<String> rows=fixed.rows();
+        int width=fixed.width();
+        int height=fixed.height();
         if(!op.has("palette") || !op.get("palette").isJsonObject())
             throw new IllegalArgumentException(
                 "pixel_art: нужен объект palette, например A=white_concrete.");
