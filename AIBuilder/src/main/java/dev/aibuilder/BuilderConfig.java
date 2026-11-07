@@ -26,7 +26,9 @@ public final class BuilderConfig {
     public boolean retryMalformedJson = true;
     public int blocksPerTick = 300;
     public int maxBlocks = 30000;
-    public int maxOperations = 100;
+    public int maxOperations = BuildLimits.DEFAULT_OPERATIONS;
+    /** Marks configs migrated to the current operation limit. */
+    public int operationLimitVersion = 1;
     public int maxHorizontalDistance = 48;
     public int maxVerticalDistance = 32;
 
@@ -81,7 +83,18 @@ public final class BuilderConfig {
                 config.model = config.model.substring("openai/".length());
             config.blocksPerTick = Math.clamp(config.blocksPerTick, 10, 1000);
             config.maxBlocks = Math.clamp(config.maxBlocks, 100, 50000);
-            config.maxOperations = Math.clamp(config.maxOperations, 1, 120);
+            boolean legacyOperationLimit = !parsed.has("operationLimitVersion");
+            int normalizedOperations = BuildLimits.configuredOperations(
+                config.maxOperations, legacyOperationLimit);
+            boolean migratedOperations = config.maxOperations != normalizedOperations
+                || legacyOperationLimit;
+            config.maxOperations = normalizedOperations;
+            config.operationLimitVersion = 1;
+            // Persist only a limit migration; no API key, model or provider is changed.
+            if (migratedOperations)
+                Files.writeString(CONFIG_FILE, GSON.toJson(config), StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE);
             config.maxHorizontalDistance = Math.clamp(config.maxHorizontalDistance, 16, 64);
             config.maxVerticalDistance = Math.clamp(config.maxVerticalDistance, 8, 48);
             return config;
