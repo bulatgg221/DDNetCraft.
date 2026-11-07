@@ -80,6 +80,21 @@ final class ArtworkModeTest {
                 "картину человека",bad,MaterialCatalog.allowedIds()));
     }
 
+    @Test void aCrudeOverlayCannotOverwriteOtherwiseDetailedPortrait() {
+        JsonObject json=com.google.gson.JsonParser.parseString(makeImage(32,32,12))
+            .getAsJsonObject();
+        JsonObject overlay=new JsonObject();
+        overlay.addProperty("type","box");
+        overlay.addProperty("stage","details");
+        overlay.addProperty("block","white_concrete");
+        overlay.addProperty("x",1);overlay.addProperty("y",0);overlay.addProperty("z",8);
+        overlay.addProperty("w",32);overlay.addProperty("h",32);overlay.addProperty("d",1);
+        json.getAsJsonArray("operations").add(overlay);
+        assertThrows(IllegalArgumentException.class,
+            ()->ArtworkMode.requireArtworkGeometry(
+                "нарисуй портрет человека",json.toString(),MaterialCatalog.allowedIds()));
+    }
+
     @Test void artworkSafetyChecksDoNotPreventRegularArchitecturalDesign() {
         String validBuilding="{\"operations\":[{\"type\":\"box\","
             +"\"block\":\"stone_bricks\",\"x\":6,\"y\":0,\"z\":6,"
