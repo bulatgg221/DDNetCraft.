@@ -50,8 +50,14 @@ public final class OpenAIPlanner {
         Keep the player's own spawn space around (0,0,0) clear.
         Each requested build should start near but NOT on the player, usually
         around x=6,z=6; choose dimensions based on the actual user brief.
-        Max 90 operations, target 24-65 meaningful ones for large projects.
-        Max 25,000 placed blocks in all operations. Avoid wasteful filled volumes.
+        Generate a UNIQUE design using as many operations as needed:
+        for ordinary houses aim 25-90; for complex castles, villages and
+        cathedrals 90-220 meaningful low-level operations are allowed.
+        The usual configured limit is 400 operations (hard ceiling 512),
+        but output a cohesive structure rather than splitting every block
+        into an individual operation.
+        Max 25,000 distinct placed blocks. Avoid wasteful filled volumes.
+        Keep JSON compact and complete: model output token limits still apply.
 
         PLAN YOUR DESIGN INTERNALLY BEFORE WRITING JSON:
         1) Choose a distinctive silhouette and an accurate footprint using the
@@ -157,8 +163,8 @@ public final class OpenAIPlanner {
         NEW complete building plan using the same requirements, NOT a fragment.
         IMPORTANT: valid strict JSON, double-quoted property names and values, colons
         between keys and values, commas between objects and properties, no trailing commas.
-        Never place markdown fences around the response. Return at most 55 operations
-        with compact JSON. Every JSON object MUST be closed. Do not invent blocks.
+        Never place markdown fences around the response. Return a coherent
+        plan of 60-160 operations when the design requires it, using compact JSON. Every JSON object MUST be closed. Do not invent blocks.
         NEVER use house, castle, fortress or other premade macros.
         Every building must contain individual original structural operations:
         walls, towers, carved windows, actual doors, roofing, and interiors.
