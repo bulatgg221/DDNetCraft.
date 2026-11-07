@@ -18,6 +18,7 @@ public final class ImageToBlocksConverter {
         double scale=Math.min(size/(double)image.getWidth(),size/(double)image.getHeight());double dw=image.getWidth()*scale,dh=image.getHeight()*scale;
         for(int y=0;y<size;y++){StringBuilder row=new StringBuilder();for(int x=0;x<size;x++){double sx=(x+0.5-(size-dw)/2)/scale,sy=(y+0.5-(size-dh)/2)/scale;if(sx<0||sy<0||sx>=image.getWidth()||sy>=image.getHeight()){row.append('.');continue;}int pixel=image.getRGB((int)sx,(int)sy);if((pixel>>>24)<128){row.append('.');continue;}row.append((char)('A'+nearest(pixel)));}rows.add(row.toString());}op.add("rows",rows);
         JsonObject root=new JsonObject();root.addProperty("format",1);root.addProperty("name","Изображение "+size+"×"+size);root.addProperty("mode","pixel_art");root.add("components",new JsonArray());JsonArray ops=new JsonArray();ops.add(op);root.add("operations",ops);return root.toString();}
+    public static int previewColor(String block){String id=block.replace("minecraft:","");for(int i=0;i<COLORS.length;i++)if(id.equals(COLORS[i]+"_concrete")||id.equals(COLORS[i]+"_wool"))return RGB[i];return (id.hashCode()&0x7f7f7f)|0x606060;}
     private static int nearest(int argb){double best=Double.MAX_VALUE;int index=0;for(int i=0;i<RGB.length;i++){double distance=0;for(int shift:new int[]{16,8,0}){double d=linear((argb>>shift)&255)-linear((RGB[i]>>shift)&255);distance+=d*d;}if(distance<best){best=distance;index=i;}}return index;}
     private static double linear(int c){double s=c/255.0;return s<=0.04045?s/12.92:Math.pow((s+0.055)/1.055,2.4);}
 }

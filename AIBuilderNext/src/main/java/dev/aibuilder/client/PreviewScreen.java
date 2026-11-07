@@ -24,9 +24,22 @@ public final class PreviewScreen extends Screen {
         addDrawableChild(ButtonWidget.builder(Text.literal("Назад"),b->client.setScreen(new PromptScreen())).dimensions(12,height-36,90,20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Сохранить чертёж"),b->AIBuilderClient.server(p->{dev.aibuilder.planning.ProjectStore.save("project_"+System.currentTimeMillis(),preview.prompt(),preview.model(),preview.plan());AIBuilderMod.tell(p,"Чертёж сохранён; /ai history.");})).dimensions(width/2+8,height-36,width/2-20,20).build());}
     public boolean shouldPause(){return false;}
-    public void render(DrawContext c,int mouseX,int mouseY,float delta){super.render(c,mouseX,mouseY,delta);c.drawCenteredTextWithShadow(textRenderer,"Схема слоя сверху · это не 3D-рендер",width/2,12,0xffffff);if(preview==null)return;
+    public void render(DrawContext c,int mouseX,int mouseY,float delta){super.render(c,mouseX,mouseY,delta);c.drawCenteredTextWithShadow(textRenderer,(preview!=null&&preview.plan().blueprint().mode().equals("pixel_art")?"Пиксель-арт · вид спереди":"Схема слоя сверху · это не 3D-рендер"),width/2,12,0xffffff);if(preview==null)return;
+        if(preview.plan().blueprint().mode().equals("pixel_art")){renderArtwork(c);return;}
         var vs=preview.plan().voxels();int minX=vs.keySet().stream().mapToInt(Pos::x).min().orElse(0),maxX=vs.keySet().stream().mapToInt(Pos::x).max().orElse(0),minZ=vs.keySet().stream().mapToInt(Pos::z).min().orElse(0),maxZ=vs.keySet().stream().mapToInt(Pos::z).max().orElse(0);
         float scale=Math.max(0.5f,Math.min((width/2f-24)/(maxX-minX+1),(height-120f)/(maxZ-minZ+1)));c.fill(12,34,width/2-8,height-78,0xff101827);
         vs.forEach((p,v)->{if(p.y()!=level||SpatialValidator.passable(v))return;int x=12+(int)((p.x()-minX)*scale),z=34+(int)((p.z()-minZ)*scale);int color=0xff000000|((v.block().hashCode()&0x7f7f7f)|0x606060);c.fill(x,z,x+Math.max(1,(int)scale),z+Math.max(1,(int)scale),color);});
         c.drawTextWithShadow(textRenderer,"Y = "+level+" · цвета условные",12,height-75,0xffffff);}
+    private void renderArtwork(DrawContext c){
+        var vs=preview.plan().voxels();String facing=dev.aibuilder.planning.PlanParser.string(preview.plan().blueprint().operations().get(0),"facing","north");
+        int[] f=dev.aibuilder.geometry.GeometryCompiler.direction(facing);
+        java.util.function.ToIntFunction<Pos> column=p->p.x()*f[1]-p.z()*f[0];
+        int min=vs.keySet().stream().mapToInt(column).min().orElse(0),max=vs.keySet().stream().mapToInt(column).max().orElse(0);
+        float scale=Math.max(.5f,Math.min((width/2f-24)/(max-min+1),(height-120f)/(maxLevel-minLevel+1)));
+        c.fill(12,34,width/2-8,height-78,0xff101827);
+        for(var e:vs.entrySet()) {Pos p=e.getKey();int x=12+(int)((column.applyAsInt(p)-min)*scale),y=34+(int)((maxLevel-p.y())*scale);
+            c.fill(x,y,x+Math.max(1,(int)scale),y+Math.max(1,(int)scale),0xff000000|dev.aibuilder.artwork.ImageToBlocksConverter.previewColor(e.getValue().block()));}
+        c.drawTextWithShadow(textRenderer,"Цвета приблизительные; без resource pack",12,height-75,0xffffff);
+    }
+
 }

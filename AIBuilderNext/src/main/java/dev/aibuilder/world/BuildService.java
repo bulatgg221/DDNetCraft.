@@ -25,7 +25,7 @@ public final class BuildService {
     public void image(ServerPlayerEntity p,int size,BuilderConfig c){start(p,"Локальное изображение", "@image:"+size,c);}
     private void start(ServerPlayerEntity p,String prompt,String saved,BuilderConfig config){
         if(p.getServer().isDedicated()||!p.isCreative())throw new IllegalArgumentException("Нужен одиночный творческий мир.");if(planning||queue.busy())throw new IllegalArgumentException("Предыдущая операция ещё не закончена.");
-        if(prompt.isBlank()||prompt.length()>16000)throw new IllegalArgumentException("Описание: 1..16000 символов.");
+        if(prompt.isBlank()||prompt.length()>16512)throw new IllegalArgumentException("Описание: до 16000 символов плюс настройки режима.");
         BuilderConfig c=config.copy();c.validate();String key=saved==null?ApiKeyStorage.get(c.provider):"";if(saved==null&&key.isBlank())throw new IllegalArgumentException("API-ключ не задан. Нажмите F8.");
         planning=true;preview=null;planningWorld=p.getServerWorld();planningOwner=p.getUuid();long token=++ticket;UUID owner=p.getUuid();ServerWorld world=p.getServerWorld();MinecraftServer server=p.getServer();
         var dir=p.getHorizontalFacing();BlockPos origin=p.getBlockPos().add(dir.getOffsetX()*6,-1,dir.getOffsetZ()*6).toImmutable();
