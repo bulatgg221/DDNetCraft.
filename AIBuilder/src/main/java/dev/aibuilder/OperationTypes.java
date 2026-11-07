@@ -16,7 +16,7 @@ public final class OperationTypes {
     private static final Set<String> NATIVE = Set.of(
         "box", "hollow_box", "cylinder", "hollow_cylinder", "sphere",
         "pyramid", "gable_roof", "gable_fill", "roof_stairs", "hip_roof", "line", "arch", "tree",
-        "block", "chair", "door", "bed", "table", "stairs_run");
+        "block", "chair", "door", "bed", "table", "stairs_run", "pixel_art");
 
     private static final Map<String, Resolved> DESCRIPTIVE = Map.ofEntries(
         // Older model schemas frequently use item labels as operation types.
