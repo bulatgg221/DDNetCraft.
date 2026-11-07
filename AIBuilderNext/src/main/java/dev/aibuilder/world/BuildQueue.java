@@ -13,13 +13,13 @@ import java.util.function.Consumer;
 /** Server-thread-only, bounded preflight and mutations, one conflict-aware transaction. */
 public final class BuildQueue {
     public record Change(BlockPos pos,BlockState before,BlockState after) {}
-    private record History(ServerWorld world,UUID owner,List<Change> changes) {}
+    private record Context(ServerWorld world,UUID owner) {}
     private static final class Job {
         final ServerWorld world;final UUID owner;final List<Change> changes;final boolean restore;final boolean redoing;
         final List<Change> applied=new ArrayList<>();int checked,index;boolean preflight=true;
         Job(ServerWorld w,UUID o,List<Change> c,boolean restore,boolean redoing){world=w;owner=o;changes=c;this.restore=restore;this.redoing=redoing;}
     }
-    private Job active;private History undo,redo;private final Consumer<String> status;
+    private Job active;private final TransactionHistory<Context,Change> history=new TransactionHistory<>();private final Consumer<String> status;
     public BuildQueue(Consumer<String> status){this.status=status;}
     public boolean busy(){return active!=null;}
     public void start(ServerPlayerEntity player,PlacementPlan plan,BlockPos origin,MaterialRegistry registry){
@@ -31,13 +31,13 @@ public final class BuildQueue {
     }
     public void undo(ServerPlayerEntity p){restore(p,false);}
     public void redo(ServerPlayerEntity p){restore(p,true);}
-    private void restore(ServerPlayerEntity p,boolean redoing){checkPlayer(p);if(busy())throw new IllegalArgumentException("Сначала остановите текущую операцию.");History h=redoing?redo:undo;
-        if(h==null||h.world()!=p.getServerWorld()||!h.owner().equals(p.getUuid()))throw new IllegalArgumentException("Нет доступной истории в этом измерении.");
-        List<Change> cs=new ArrayList<>();for(var c:h.changes())cs.add(new Change(c.pos(),redoing?c.before():c.after(),redoing?c.after():c.before()));Collections.reverse(cs);
-        active=new Job(h.world(),h.owner(),cs,true,redoing);status.accept(redoing?"Проверка перед redo":"Проверка перед undo");
+    private void restore(ServerPlayerEntity p,boolean redoing){checkPlayer(p);if(busy())throw new IllegalArgumentException("Сначала остановите текущую операцию.");List<Change> original=history.get(new Context(p.getServerWorld(),p.getUuid()),redoing);
+        List<Change> cs=new ArrayList<>();for(var c:original)cs.add(new Change(c.pos(),redoing?c.before():c.after(),redoing?c.after():c.before()));
+        if(!redoing)Collections.reverse(cs);
+        active=new Job(p.getServerWorld(),p.getUuid(),cs,true,redoing);status.accept(redoing?"Проверка перед redo":"Проверка перед undo");
     }
-    public void cancel(){if(active==null)return;Job j=active;if(!j.applied.isEmpty()){undo=new History(j.world,j.owner,List.copyOf(j.applied));redo=null;}active=null;status.accept("Остановлено. /ai undo — восстановить изменённые блоки.");}
-    public void clear(){active=null;undo=null;redo=null;}
+    public void cancel(){if(active==null)return;Job j=active;if(!j.applied.isEmpty()){history.record(new Context(j.world,j.owner),j.applied);}active=null;status.accept("Остановлено. /ai undo — восстановить изменённые блоки.");}
+    public void clear(){active=null;history.clear();}
     public void tick(MinecraftServer server,int budget){Job j=active;if(j==null)return;
         ServerPlayerEntity owner=server.getPlayerManager().getPlayer(j.owner);
         if(owner==null||!owner.isCreative()||owner.getServerWorld()!=j.world){cancel();return;}
@@ -63,10 +63,7 @@ public final class BuildQueue {
         }catch(Exception e){cancel();status.accept(e.getMessage());}
     }
     private void complete(Job j){
-        if(j.restore && !j.redoing){
-            List<Change> inverse=j.applied.stream().map(c->new Change(c.pos(),c.after(),c.before())).toList();
-            redo=new History(j.world,j.owner,inverse);undo=null;
-        }else{undo=new History(j.world,j.owner,List.copyOf(j.applied));redo=null;}
+        if(j.restore)history.completed(j.redoing);else history.record(new Context(j.world,j.owner),j.applied);
         active=null;status.accept("Готово: изменено "+j.applied.size()+" блоков. /ai undo, /ai redo.");
     }
     private static void checkPlayer(ServerPlayerEntity p){if(p.getServer()==null||p.getServer().isDedicated()||!p.isCreative())throw new IllegalArgumentException("Нужен одиночный творческий мир.");}

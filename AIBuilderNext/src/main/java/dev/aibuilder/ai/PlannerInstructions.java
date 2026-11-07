@@ -35,7 +35,7 @@ public final class PlannerInstructions {
         Pixel mode: mode="pixel_art", components can be empty. Use type="pixel_art",x,y,z,facing,
         w,h from 8 to 64,palette mapping single ASCII characters to block IDs or "transparent",
         rows exactly h strings each w characters; row zero is top, x/y/z is bottom-left.
-        Pixels follow screen-right when viewed from facing; never use boxes for a portrait.
+        Facing is the surface normal toward the viewer. Screen-right: north=-X,south=+X,east=-Z,west=+Z; never use boxes for a portrait.
         Design original pixels with shading. Use 32x32 unless another size is requested.
         """+"\nLimits: operations="+l.operations()+", unique blocks="+l.blocks()+", placement attempts="+l.attempts()+", abs(x,z)<="+l.horizontal()+", abs(y)<="+l.vertical()+".\nAllowed registry IDs: "+String.join(" ",ids);}
 }

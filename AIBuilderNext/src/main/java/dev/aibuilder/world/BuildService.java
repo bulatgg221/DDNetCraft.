@@ -32,7 +32,15 @@ public final class BuildService {
         status=saved==null?"Проектирование ИИ: один платный запрос…":"Загрузка проекта без API…";
         task=executor.submit(()->{try{
             String json=saved==null?provider.request(c,key,PlannerInstructions.create(c.limits(),materials.ids()),prompt):(saved.startsWith("@image:")?dev.aibuilder.artwork.ImageToBlocksConverter.load(Integer.parseInt(saved.substring(7))):ProjectStore.load(saved));
-            Blueprint bp=PlanParser.parse(json,c.limits());PlacementPlan plan=GeometryCompiler.compile(bp,c.limits(),materials::resolve);SpatialValidator.Report spatial=SpatialValidator.validate(plan);
+            Blueprint bp;
+            int retries=0;
+            while(true){try{bp=PlanParser.parse(json,c.limits());break;}catch(IllegalArgumentException invalid){
+                if(saved!=null||!RetryPolicy.canRetry(retries,prompt,c))throw invalid;
+                if(Thread.currentThread().isInterrupted())throw new IllegalArgumentException("Запрос отменён.");
+                retries++;server.execute(()->{if(token==ticket)status="Разрешённый платный повтор: исправление некорректного JSON…";});
+                json=provider.request(c,key,PlannerInstructions.create(c.limits(),materials.ids()),prompt+"\nПредыдущий JSON отклонён: "+invalid.getMessage()+". Сформируй полный корректный план заново.");
+            }}
+            PlacementPlan plan=GeometryCompiler.compile(bp,c.limits(),materials::resolve);SpatialValidator.Report spatial=SpatialValidator.validate(plan);
             List<String> warnings=new ArrayList<>(spatial.warnings());warnings.addAll(BuildQualityAnalyzer.analyze(prompt,plan));
             SpatialValidator.Report report=new SpatialValidator.Report(List.copyOf(warnings),spatial.reachable(),spatial.rooms(),spatial.distinctShapes());
             materials.validateFluids(plan);
