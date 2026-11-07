@@ -98,6 +98,10 @@ public final class BuildQualityAnalyzer {
                 warnings.add("Картина меньше 8×8 — очень низкая детализация.");
         }
 
+        if(!picture && !architecture.regions().isEmpty())
+            warnings.addAll(WalkabilityAudit.inspectCompiled(
+                architecture.regions(),plan,origin));
+
         // Metadata doesn't prove that a room physically exists. Evaluate
         // that at least one occupied voxel lies inside each declared region.
         for(ArchitectureSpec.Region r:architecture.regions()){
