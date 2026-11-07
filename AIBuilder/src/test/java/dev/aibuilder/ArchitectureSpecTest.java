@@ -47,7 +47,8 @@ final class ArchitectureSpecTest {
     }
 
     @Test void unknownTargetRoomAndDuplicateNamesDoNotCrashCompiler(){
-        String missing=VALID.replace("\"north_tower\"", "\"missing_tower\"");
+        String missing=VALID.replace("\"connectedTo\":[\"gate\",\"north_tower\"]",
+            "\"connectedTo\":[\"gate\",\"missing_tower\"]");
         var result=ArchitectureSpec.inspect(missing);
         assertTrue(result.warnings().stream().anyMatch(s->s.contains("несуществующую")),
             result.warnings().toString());
