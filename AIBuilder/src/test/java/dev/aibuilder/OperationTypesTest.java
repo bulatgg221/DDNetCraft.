@@ -64,6 +64,51 @@ final class OperationTypesTest {
         check("tree",null,"tree",null);
     }
 
+    @Test void archesAndOtherArchLabelsResolveToTheActualArchPrimitive() {
+        for(String name:new String[]{
+            "arches","ARCHES","Archs","archway","archways",
+            "gate-arch","arched gateway"," arch "}) {
+            check(name,"stone_bricks","arch","stone_bricks");
+        }
+        check("arches",null,"arch",null);
+    }
+
+    @Test void pluralShapeAliasesDoNotChangeAnyMaterialsOrBecomePrefabs() {
+        java.util.Map<String,String> expected=java.util.Map.ofEntries(
+            java.util.Map.entry("boxes","box"),
+            java.util.Map.entry("hollow_boxes","hollow_box"),
+            java.util.Map.entry("cylinders","cylinder"),
+            java.util.Map.entry("hollow_cylinders","hollow_cylinder"),
+            java.util.Map.entry("spheres","sphere"),
+            java.util.Map.entry("pyramids","pyramid"),
+            java.util.Map.entry("lines","line"),
+            java.util.Map.entry("doors","door"),
+            java.util.Map.entry("tables","table"),
+            java.util.Map.entry("chairs","chair"),
+            java.util.Map.entry("trees","tree"),
+            java.util.Map.entry("hip_roofs","hip_roof"),
+            java.util.Map.entry("gable_roofs","gable_roof"),
+            java.util.Map.entry("roof_stair","roof_stairs"),
+            java.util.Map.entry("stair_runs","stairs_run"),
+            java.util.Map.entry("pixelart","pixel_art")
+        );
+        for(var entry:expected.entrySet())
+            check(entry.getKey(),"stone_bricks",entry.getValue(),"stone_bricks");
+    }
+
+    @Test void preservingDescriptiveStairsAndUnknownTypesIsImportant() {
+        check("stairs",null,"stairs_run","oak_stairs");
+        check("staircase",null,"stairs_run","oak_stairs");
+        assertThrows(IllegalArgumentException.class,
+            ()->OperationTypes.resolve("castles",null,PALETTE));
+        assertThrows(IllegalArgumentException.class,
+            ()->OperationTypes.resolve("houses",null,PALETTE));
+        assertThrows(IllegalArgumentException.class,
+            ()->OperationTypes.resolve("execute_command",null,PALETTE));
+        assertThrows(IllegalArgumentException.class,
+            ()->OperationTypes.resolve("unknown_shapes",null,PALETTE));
+    }
+
     @Test void unknownLabelsRemainRejected() {
         assertThrows(IllegalArgumentException.class,
             () -> OperationTypes.resolve("tnt",null,PALETTE));
