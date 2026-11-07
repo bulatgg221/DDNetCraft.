@@ -54,7 +54,7 @@ public final class ProjectStore {
         boolean moved=false;
         try {
             Files.writeString(temp,json,StandardCharsets.UTF_8,
-                StandardOpenOption.TRUNCATE_EXISTING);
+                StandardOpenOption.WRITE,StandardOpenOption.TRUNCATE_EXISTING);
             try {
                 Files.move(temp,destination,StandardCopyOption.REPLACE_EXISTING,
                     StandardCopyOption.ATOMIC_MOVE);
