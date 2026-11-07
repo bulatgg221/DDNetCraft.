@@ -1,4 +1,33 @@
-# AI Builder 0.10.0 — original buildings and pixel art
+# AI Builder 0.10.1 — freeform buildings and pixel art
+
+## 0.10.1 — offline repair for AI-generated image row discrepancies
+
+In 0.10.0, GPT-4.1 often returned 31/33 characters in a 32-wide
+pixel grid, or 30–31 rows instead of 32. That caused the entire
+pixel_art plan to be rejected and could double API usage on a retry.
+
+`PixelArtRows` now corrects small discrepancies locally using
+nearest-neighbor adjustment to the intended width/height, removes
+harmless whitespace/visual separators, and never makes an additional
+network call. The validated, corrected rows are also the ones
+actually compiled and archived. Truly corrupt, empty, invalid-symbol
+or grossly inconsistent artwork is rejected safely.
+
+A new `retryArtwork` config field defaults to `false` to prevent
+additional paid artwork retries, even if the existing generic
+`retryMalformedJson` switch is true. To opt into a second billable
+artwork attempt, explicitly set both switches to true in
+`config/aibuilder/config.json`. Other architectural retries are
+unchanged.
+
+The in-game read-only `/ai selftest` deliberately injects 31/33
+character rows and checks that the renderer still compiles
+exactly 1024 color blocks. Dedicated JUnit tests cover near-misses,
+mismatched height, unknown symbols and failure bounds.
+
+This fixes schema tolerance; it does not give a text-only LLM
+visual inspection or guarantee photorealistic likeness.
+
 
 ## 0.10.0 — original AI-authored pixel-art portraits
 
