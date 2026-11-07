@@ -36,7 +36,9 @@ public final class PlanResponseParser {
         try {
             return validate(json).toString();
         } catch (RuntimeException ex) {
-            if(ex.getMessage()!=null && ex.getMessage().startsWith("Слишком много операций"))
+            if(ex.getMessage()!=null &&
+                (ex.getMessage().startsWith("Слишком много операций") ||
+                 ex.getMessage().startsWith("Операция type=")))
                 throw ex;
             // Retry with non-destructive, strictly syntactic normalization only.
         }
@@ -46,7 +48,9 @@ public final class PlanResponseParser {
         try {
             return validate(repaired).toString();
         } catch (RuntimeException ex) {
-            if(ex.getMessage()!=null && ex.getMessage().startsWith("Слишком много операций"))
+            if(ex.getMessage()!=null &&
+                (ex.getMessage().startsWith("Слишком много операций") ||
+                 ex.getMessage().startsWith("Операция type=")))
                 throw ex;
             throw new IllegalArgumentException(
                 "Нейросеть прислала повреждённый JSON-план. Попробуй упростить запрос.");
