@@ -43,8 +43,11 @@ public final class OpenAIPlanner {
         Return exactly ONE strict JSON object, no markdown or explanations:
         {"name":"Original project name","operations":[{"type":"box","stage":"foundation",
         "block":"stone_bricks","x":6,"y":0,"z":6,"w":15,"h":1,"d":13}, ...]}
-        Each operation must have type, stage, block, x,y,z. Supply dimensions w,h,d
-        only when a shape uses them; supply r only for radius-based primitives.
+        For architecture primitives each operation needs type, stage, block,
+        x,y,z. For pixel_art ONLY, supply type, stage, x,y,z, palette, rows
+        (the colors are declared in palette, not a separate block property).
+        Supply dimensions w,h,d only when a shape uses them; supply r only
+        for radius-based primitives.
         Coordinates are in blocks relative to the player. Y increases upward.
         Build region: x,z between -40 and +40, y between -10 and +25.
         Keep the player's own spawn space around (0,0,0) clear.
