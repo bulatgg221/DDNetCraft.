@@ -70,6 +70,28 @@ final class ArtworkModeTest {
         assertEquals(detailed,GeneratedPlanGuard.requireOriginalGeometry(detailed));
     }
 
+    @Test void anActualModelGridWithUnevenRowsIsRepairedBeforeQualityChecks() {
+        JsonObject original=com.google.gson.JsonParser.parseString(
+            makeImage(32,30,12)).getAsJsonObject();
+        JsonArray rows=original.getAsJsonArray("operations").get(0)
+            .getAsJsonObject().getAsJsonArray("rows");
+        String shortRow=rows.get(6).getAsString();
+        rows.set(6,new com.google.gson.JsonPrimitive(shortRow.substring(0,31)));
+        String longRow=rows.get(14).getAsString();
+        rows.set(14,new com.google.gson.JsonPrimitive(longRow+"A"));
+        String repaired=ArtworkMode.requireArtworkGeometry(
+            "нарисуй детализированный портрет человека 32x32",
+            original.toString(),MaterialCatalog.allowedIds());
+        JsonObject op=com.google.gson.JsonParser.parseString(repaired)
+            .getAsJsonObject().getAsJsonArray("operations")
+            .get(0).getAsJsonObject();
+        assertEquals(32,op.getAsJsonArray("rows").size());
+        for(var row:op.getAsJsonArray("rows"))
+            assertEquals(32,row.getAsString().length());
+        assertDoesNotThrow(()->ArtworkMode.requireArtworkGeometry(
+            "нарисуй портрет человека",repaired,MaterialCatalog.allowedIds()));
+    }
+
     @Test void pictureOnlyMadeOfBigRectanglesMustBeReplanned() {
         String bad="{\"name\":\"crude face\",\"operations\":["
             +"{\"type\":\"box\",\"stage\":\"walls\","
