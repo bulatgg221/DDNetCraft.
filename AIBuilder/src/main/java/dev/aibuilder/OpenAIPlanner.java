@@ -113,6 +113,34 @@ public final class OpenAIPlanner {
         7) For a castle use separate towers, crenellations, gateway, courtyard,
            keep and connecting walls. Never make the courtyard a filled cube.
            Give it a unique castle outline based on the user's request.
+           CASTLE QUALITY GATE (important, checked from actual world blocks):
+           - Declare EVERY requested tower as a distinct architecture.regions
+             entry with kind="tower", sensible footprint >=3x3 and tall height.
+             EACH declared tower must actually contain complete tall masonry
+             geometry. Do not fake the requested tower count using JSON labels.
+           - A requested main gate MUST have a region with kind="gatehouse" or
+             kind="entrance" and an actual opening MINIMUM 3 blocks wide by
+             3 blocks tall through the front wall. Support each side of the
+             opening with real masonry columns. A lone 1x2 wooden door stuck
+             on one side of a blank wall is NOT a castle gate.
+           - NEVER build a 15x10 or larger featureless flat stone wall across
+             the whole front. Break the wall into a real gate arch, windows,
+             wall relief, supporting buttresses, balconies and battlements.
+           - A steep roof must cover the associated keep or hall, not exist
+             only as detached dark stair strips on top of corner towers.
+             Never leave a long floating bar between two roof tips.
+           - Final geometry must fit ALL actual world safety boundaries
+             WITHOUT the engine shortening any primitive. Model-generated
+             overlarge roof_stairs/hip_roof shapes may be silently clipped;
+             the improved engine now BLOCKS castle confirmation if anything
+             had to be clipped. Plan roofs with proper ridge elevation.
+           - Prefer several coherent smaller roof primitives on actual
+             connected wings, not one overlarge roof covering 35x35 blocks.
+           - Inspect your own output: real main gate, complete towers,
+             continuous roofs, connected rooms and readable castle silhouette.
+           - If these requirements do not fit the current build area or
+             completion token budget, design a smaller but complete castle,
+             rather than outputting an incomplete wall.
         8) For modern villas choose clean flat roofs, bright walls and larger
            glass panels. For Japanese choose overhangs and darker hip roofs.
            For medieval choose timber frames, stone foundations and pitched roofs.
