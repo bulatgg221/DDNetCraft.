@@ -259,16 +259,17 @@ public final class OpenAIPlanner {
                 try {
                     return requestPlan(prompt,config,key,false);
                 } catch (InvalidPlanJson invalid) {
-                    if (ArtworkMode.isArtwork(prompt) && !config.retryArtwork)
-                        throw new IllegalStateException(
-                            "Рисунок ИИ не прошёл проверку даже после бесплатного исправления: "
-                            + invalid.getMessage()
-                            + ". Повторный платный запрос отключён (retryArtwork=false). "
-                            + "Можно изменить его в config/aibuilder/config.json.");
-                    if (!config.retryMalformedJson)
+                    if (!PaidRetryPolicy.shouldRetry(prompt,config.retryMalformedJson,
+                        config.retryArtwork)) {
+                        if (ArtworkMode.isArtwork(prompt) && !config.retryArtwork)
+                            throw new IllegalStateException(
+                                "Рисунок ИИ не прошёл проверку после бесплатного выравнивания: "
+                                + invalid.getMessage()
+                                + ". Второй платный запрос отключён (retryArtwork=false).");
                         throw new IllegalStateException(
                             "План ИИ отклонён: "+invalid.getMessage()
-                            +". Включи retryMalformedJson в config.json для автоматической повторной попытки.");
+                            +". Повторный запрос отключён в config.json.");
+                    }
                     AIBuilderMod.LOG.warn("AI Builder: malformed model plan; requesting one fresh shorter plan (extra API tokens may be charged).");
                     try {
                         return requestPlan(prompt,config,key,true);
