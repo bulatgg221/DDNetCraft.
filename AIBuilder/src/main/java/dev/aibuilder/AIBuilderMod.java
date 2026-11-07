@@ -249,6 +249,7 @@ public final class AIBuilderMod implements ModInitializer {
                         var worldKey = player.getWorld().getRegistryKey();
                         BuildService.tell(player, "ИИ создаёт оригинальный чертёж с координатами… /ai status для проверки; /ai cancel для отмены.");
                         BuilderConfig snapshot = config;
+                        final String designBrief = prompt;
                         OpenAIPlanner.plan(prompt, snapshot).whenComplete((json, error) -> server.execute(() -> {
                             if (!service.isPending(ticket)) return;
                             service.endPlanning(ticket);
@@ -265,6 +266,25 @@ public final class AIBuilderMod implements ModInitializer {
                                 GeneratedPlanGuard.requireOriginalGeometry(json);
                                 PlanCompiler.CompiledPlan plan = PlanCompiler.compile(
                                     json, anchor, snapshot);
+                                if(ArtworkMode.isArtwork(designBrief)){
+                                    ArtworkMode.requireArtworkGeometry(designBrief,json,
+                                        MaterialCatalog.allowedIds());
+                                    JsonArray drawings=JsonParser.parseString(json)
+                                        .getAsJsonObject().getAsJsonArray("operations");
+                                    for(var drawing:drawings){
+                                        if(!drawing.isJsonObject())continue;
+                                        JsonObject image=drawing.getAsJsonObject();
+                                        if(!image.has("type") ||
+                                            !image.get("type").getAsString()
+                                                .equalsIgnoreCase("pixel_art"))continue;
+                                        PixelArtLayout.Canvas canvas=PixelArtLayout.parse(
+                                            image,MaterialCatalog.allowedIds());
+                                        BuildService.tell(current,"ИИ нарисовал оригинальную "
+                                            +"цветную мозаику "+canvas.width()+"×"
+                                            +canvas.height()+" из "+canvas.colorCount()
+                                            +" оттенков ("+canvas.paintedPixels()+" пикселей).");
+                                    }
+                                }
                                 GeneratedPlanArchive.trySave(json);
                                 BuildService.tell(current, "Оригинальный чертёж ИИ: "
                                     + plan.operations() + " операций, "
