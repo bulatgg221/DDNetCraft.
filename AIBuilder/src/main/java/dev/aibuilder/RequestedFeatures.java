@@ -16,8 +16,10 @@ public final class RequestedFeatures {
     private static final Map<String,Integer> COUNTS=Map.ofEntries(
         Map.entry("один",1),Map.entry("одну",1),
         Map.entry("два",2),Map.entry("две",2),
-        Map.entry("три",3),Map.entry("четыре",4),
-        Map.entry("пять",5),Map.entry("шесть",6),
+        Map.entry("три",3),Map.entry("тремя",3),
+        Map.entry("четыре",4),Map.entry("четырьмя",4),
+        Map.entry("пять",5),Map.entry("пятью",5),
+        Map.entry("шесть",6),Map.entry("шестью",6),
         Map.entry("семь",7),Map.entry("восемь",8),
         Map.entry("девять",9),Map.entry("десять",10),
         Map.entry("one",1),Map.entry("two",2),
@@ -26,10 +28,14 @@ public final class RequestedFeatures {
         Map.entry("seven",7),Map.entry("eight",8),
         Map.entry("nine",9),Map.entry("ten",10));
     private static final Pattern TOWERS=Pattern.compile(
-        "(?:\\b(\\d{1,2}|один|одну|два|две|три|четыре|пять|шесть|семь|"
-        +"восемь|девять|десять|one|two|three|four|five|six|seven|eight|nine|ten)\\b)"
-        +"\\s+(?:(?:высоких|угловых|разных|больших|small|large|tall|corner)\\s+){0,3}"
-        +"(башн[яиь]?|башен|tower|towers)",
+        "(?:\\b(\\d{1,2}|один|одну|два|две|три|тремя|четыре|четырьмя|пять|пятью|"
+        +"шесть|шестью|семь|восемь|девять|десять|one|two|three|four|five|"
+        +"six|seven|eight|nine|ten)\\b)"
+        +"\\s+(?:(?:мощные|мощных|угловые|угловых|высокие|высоких|разные|"
+        +"разных|разной|высоты|большие|больших|каменные|каменных|"
+        +"круглые|круглых|декоративные|small|large|tall|corner|"
+        +"different|stone|round)\\s+){0,4}"
+        +"(башн[а-яё]*|башен|towers?)\\b",
         Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE|
             Pattern.UNICODE_CHARACTER_CLASS);
     private static final Pattern FLOORS=Pattern.compile(
