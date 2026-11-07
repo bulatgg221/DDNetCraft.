@@ -15,7 +15,12 @@ public final class AIBuilderMod implements ModInitializer {
     public static volatile BuilderConfig config;
     public static BuildService service;
     public void onInitialize(){try{config=BuilderConfig.load();}catch(Exception e){config=new BuilderConfig();LoggerFactory.getLogger("AIBuilder").warn("Invalid AI Builder config; using defaults.");}
-        service=new BuildService();ServerTickEvents.END_SERVER_TICK.register(s->service.tick(s,config));ServerLifecycleEvents.SERVER_STOPPED.register(s->service.clear());
+        service=new BuildService();
+        if(Boolean.getBoolean("aibuilder.smoke")) {
+            try{String report=BuilderSelfTest.run(service.materials);LoggerFactory.getLogger("AIBuilder").info("SMOKE PASSED: "+report);System.exit(0);}
+            catch(Throwable failure){LoggerFactory.getLogger("AIBuilder").error("SMOKE FAILED",failure);System.exit(1);}
+        }
+        ServerTickEvents.END_SERVER_TICK.register(s->service.tick(s,config));ServerLifecycleEvents.SERVER_STOPPED.register(s->service.clear());
         CommandRegistrationCallback.EVENT.register((dispatcher,access,environment)->{
             var root=CommandManager.literal("ai").requires(src->!src.getServer().isDedicated()&&src.hasPermissionLevel(2));
             root.then(CommandManager.literal("build").then(CommandManager.argument("description",StringArgumentType.greedyString()).executes(ctx->run(ctx.getSource().getPlayerOrThrow(),p->service.generate(p,StringArgumentType.getString(ctx,"description"),config)))));

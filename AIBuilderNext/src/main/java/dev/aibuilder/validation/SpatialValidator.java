@@ -8,7 +8,7 @@ import static dev.aibuilder.planning.PlanParser.error;
 public final class SpatialValidator {
     private static final int[][] SIDES={{1,0,0},{-1,0,0},{0,0,1},{0,0,-1}};
     public record Report(List<String> warnings,int reachable,int rooms,int distinctShapes) {}
-    public static boolean passable(Voxel v){if(v==null)return true;String b=v.block();return b.endsWith(":air")||b.equals("air")||b.endsWith("_door")||b.endsWith("_carpet")||b.endsWith("_torch")||b.endsWith(":torch");}
+    public static boolean passable(Voxel v){if(v==null)return false;String b=v.block();return b.endsWith(":air")||b.equals("air")||b.endsWith("_door")||b.endsWith("_carpet")||b.endsWith("_torch")||b.endsWith(":torch");}
     public static boolean support(Voxel v){return v!=null&&!passable(v)&&!v.block().endsWith(":water")&&!v.block().equals("water");}
     public static Report validate(PlacementPlan plan) {
         var vox=plan.voxels();var b=plan.blueprint();List<String> warnings=new ArrayList<>(plan.warnings());
@@ -18,6 +18,7 @@ public final class SpatialValidator {
                 if(half.equals("lower")){if(!support(vox.get(p.add(0,-1,0))))throw error("У двери нет пола: "+p);int[] f=GeometryCompiler.direction(v.properties().getOrDefault("facing","north"));for(int s:new int[]{-1,1})if(!clear(vox,p.add(f[0]*s,0,f[1]*s)))throw error("Дверь перекрыта стеной: "+p);}}
             if(id.endsWith("_bed")){int[] f=GeometryCompiler.direction(v.properties().getOrDefault("facing","north"));boolean head=v.properties().getOrDefault("part","foot").equals("head");var mate=vox.get(p.add(f[0]*(head?-1:1),0,f[1]*(head?-1:1)));if(mate==null||!mate.block().equals(id)||Objects.equals(mate.properties().get("part"),v.properties().get("part"))||!Objects.equals(mate.properties().get("facing"),v.properties().get("facing")))throw error("Несогласованные части кровати: "+p);}
         }
+        for(var component:b.components())for(var e:vox.entrySet())if(e.getValue().component().equals(component.id())&&!component.bounds().contains(e.getKey()))throw error("Геометрия выходит за bounds компонента: "+component.id());
         if(b.mode().equals("pixel_art")){long colors=vox.values().stream().map(Voxel::block).distinct().count();if(colors<4)warnings.add("Пиксель-арт использует менее четырёх цветов; визуальное качество не подтверждено.");return new Report(List.copyOf(warnings),0,0,1);}
         var entrance=b.components().stream().filter(c->c.kind().equals("entrance")&&c.access()!=null).findFirst().orElseThrow(()->error("Нужен компонент entrance с access."));
         List<Blueprint.Component> rooms=b.components().stream().filter(c->Set.of("room","hall","tower").contains(c.kind())).toList();

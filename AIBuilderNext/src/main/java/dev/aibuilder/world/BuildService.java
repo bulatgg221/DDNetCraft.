@@ -22,6 +22,7 @@ public final class BuildService {
     public final MaterialRegistry materials=new MaterialRegistry();
     public void generate(ServerPlayerEntity p,String prompt,BuilderConfig config){start(p,prompt,null,config);}
     public void load(ServerPlayerEntity p,String name,BuilderConfig c){start(p,"Загружен проект "+name,name,c);}
+    public void image(ServerPlayerEntity p,int size,BuilderConfig c){start(p,"Локальное изображение", "@image:"+size,c);}
     private void start(ServerPlayerEntity p,String prompt,String saved,BuilderConfig config){
         if(p.getServer().isDedicated()||!p.isCreative())throw new IllegalArgumentException("Нужен одиночный творческий мир.");if(planning||queue.busy())throw new IllegalArgumentException("Предыдущая операция ещё не закончена.");
         if(prompt.isBlank()||prompt.length()>16000)throw new IllegalArgumentException("Описание: 1..16000 символов.");
@@ -30,8 +31,11 @@ public final class BuildService {
         var dir=p.getHorizontalFacing();BlockPos origin=p.getBlockPos().add(dir.getOffsetX()*6,-1,dir.getOffsetZ()*6).toImmutable();
         status=saved==null?"Проектирование ИИ: один платный запрос…":"Загрузка проекта без API…";
         task=executor.submit(()->{try{
-            String json=saved==null?provider.request(c,key,PlannerInstructions.create(c.limits(),materials.ids()),prompt):ProjectStore.load(saved);
-            Blueprint bp=PlanParser.parse(json,c.limits());PlacementPlan plan=GeometryCompiler.compile(bp,c.limits(),materials::resolve);SpatialValidator.Report report=SpatialValidator.validate(plan);
+            String json=saved==null?provider.request(c,key,PlannerInstructions.create(c.limits(),materials.ids()),prompt):(saved.startsWith("@image:")?dev.aibuilder.artwork.ImageToBlocksConverter.load(Integer.parseInt(saved.substring(7))):ProjectStore.load(saved));
+            Blueprint bp=PlanParser.parse(json,c.limits());PlacementPlan plan=GeometryCompiler.compile(bp,c.limits(),materials::resolve);SpatialValidator.Report spatial=SpatialValidator.validate(plan);
+            List<String> warnings=new ArrayList<>(spatial.warnings());warnings.addAll(BuildQualityAnalyzer.analyze(prompt,plan));
+            SpatialValidator.Report report=new SpatialValidator.Report(List.copyOf(warnings),spatial.reachable(),spatial.rooms(),spatial.distinctShapes());
+            materials.validateFluids(plan);
             server.execute(()->{if(token!=ticket)return;planning=false;ServerPlayerEntity current=server.getPlayerManager().getPlayer(owner);if(current==null||current.getServerWorld()!=world||!current.isCreative()){status="Результат отменён: игрок вышел или сменил измерение.";return;}preview=new Preview(plan,report,origin,prompt,c.model,owner,world);status="План готов: "+plan.voxels().size()+" блоков. F7 — предпросмотр и подтверждение.";});
         }catch(Exception e){server.execute(()->{if(token==ticket){planning=false;status=e.getMessage()==null?"Не удалось обработать план.":e.getMessage();}});}});
     }

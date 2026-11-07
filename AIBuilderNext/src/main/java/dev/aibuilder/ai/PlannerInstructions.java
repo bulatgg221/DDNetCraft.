@@ -12,7 +12,7 @@ public final class PlannerInstructions {
         "bounds":{"x":0,"y":0,"z":0,"w":1,"h":1,"d":1},"connectedTo":[],"access":{"x":0,"y":1,"z":0}}],
         "sections":[{"id":"main","dependsOn":[]}],"operations":[...]}
         Structure must include an entrance and rooms, with access points at feet level and actual
-        connected walkable paths: solid floor and two free blocks above. Place foundation at y=0;
+        connected walkable paths: solid floor and two EXPLICIT air blocks above. Unknown unplanned cells are NOT considered passable. Place foundation at y=0;
         connect all large solid structures to it. Do not float stairs or roofs. Every component's
         bounds must cover its geometry. Use component IDs on operations. Roof bounds cover roof only.
         Count the requested towers, floors and features exactly. Plan entrances/windows before walls.

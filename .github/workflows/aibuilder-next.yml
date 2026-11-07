@@ -22,6 +22,8 @@ jobs:
           gradle-version: '8.8'
       - name: Compile and test
         run: gradle -p AIBuilderNext build --no-daemon
+      - name: Real Minecraft registry and property checks (no world, no API)
+        run: gradle -p AIBuilderNext runSmoke --no-daemon
       - name: Test report
         if: always()
         uses: actions/upload-artifact@v7

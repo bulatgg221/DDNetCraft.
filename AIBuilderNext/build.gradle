@@ -31,3 +31,15 @@ java {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+// Launch through Fabric so registry/property smoke tests see real Minecraft classes.
+loom {
+    runs {
+        smoke {
+            server()
+            name 'AI Builder offline registry checks'
+            vmArg '-Daibuilder.smoke=true'
+            runDir 'build/smoke'
+        }
+    }
+}

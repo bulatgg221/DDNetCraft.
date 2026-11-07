@@ -22,12 +22,21 @@ public final class MaterialRegistry {
             || s.matches("(polished_|smooth_)?(andesite|diorite|granite|basalt|quartz|stone|blackstone|deepslate)")
             || s.matches("(gold|iron|diamond|emerald|quartz|lapis|amethyst|netherite)_block");
     }
+    public void validateFluids(dev.aibuilder.geometry.PlacementPlan plan){
+        for(var e:plan.voxels().entrySet())if(e.getValue().block().equals("minecraft:water")){
+            for(int[] offset:new int[][]{{0,-1,0},{1,0,0},{-1,0,0},{0,0,1},{0,0,-1}}){
+                var other=plan.voxels().get(e.getKey().add(offset[0],offset[1],offset[2]));
+                if(other!=null&&other.block().equals("minecraft:water"))continue;
+                if(other==null||!Block.isShapeFullCube(state(other).getCollisionShape(net.minecraft.world.EmptyBlockView.INSTANCE,net.minecraft.util.math.BlockPos.ORIGIN)))throw error("Вода должна иметь герметичные стены и дно внутри плана.");
+            }
+        }
+    }
     public Set<String> ids(){return allowed;}
     public Voxel resolve(Voxel v){String id=v.block().strip().toLowerCase(Locale.ROOT).replace(' ','_').replace('-','_');if(!id.contains(":"))id="minecraft:"+id;
         if(!allowed.contains(id))throw error("Неизвестный или запрещённый блок: "+id);
         Voxel normalized=new Voxel(id,v.properties(),v.stage(),v.component());
-        states.computeIfAbsent(normalized,this::create);return normalized;}
-    public BlockState state(Voxel v){Voxel n=resolve(v);return states.get(n);}
+        Voxel cacheKey=new Voxel(id,v.properties(),0,"");if(states.size()>10000)states.clear();states.computeIfAbsent(cacheKey,this::create);return normalized;}
+    public BlockState state(Voxel v){Voxel n=resolve(v);return states.computeIfAbsent(new Voxel(n.block(),n.properties(),0,""),this::create);}
     private BlockState create(Voxel v){BlockState s=Registries.BLOCK.get(Identifier.of(v.block())).getDefaultState();
         if(s.getBlock() instanceof LeavesBlock)s=s.with(LeavesBlock.PERSISTENT,true);
         for(var e:v.properties().entrySet())s=property(s,e.getKey(),e.getValue());return s;}
