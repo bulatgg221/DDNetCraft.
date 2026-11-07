@@ -30,11 +30,13 @@ public final class RequestedFeatures {
         +"восемь|девять|десять|one|two|three|four|five|six|seven|eight|nine|ten)\\b)"
         +"\\s+(?:(?:высоких|угловых|разных|больших|small|large|tall|corner)\\s+){0,3}"
         +"(башн[яиь]?|башен|tower|towers)",
-        Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE);
+        Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE|
+            Pattern.UNICODE_CHARACTER_CLASS);
     private static final Pattern FLOORS=Pattern.compile(
         "(?:\\b(\\d{1,2}|один|два|две|три|четыре|пять|one|two|three|four|five)\\b)"
         +"\\s+(этаж[аеёйов]*|floors?|stories)",
-        Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE);
+        Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE|
+            Pattern.UNICODE_CHARACTER_CLASS);
 
     public static int towers(String prompt){return getCount(TOWERS,prompt);}
     public static int floors(String prompt){return getCount(FLOORS,prompt);}
