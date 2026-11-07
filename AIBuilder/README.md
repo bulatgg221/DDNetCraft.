@@ -1,4 +1,43 @@
-# AI Builder 0.9.1 — verified Minecraft 1.21.1 material catalog
+# AI Builder 0.10.0 — original buildings and pixel art
+
+## 0.10.0 — original AI-authored pixel-art portraits
+
+A portrait produced from a handful of huge `box` operations can be
+geometrically valid but visually poor. The new **`pixel_art`**
+primitive lets the selected model create its own 2D grid of pixel
+symbols and a matching Minecraft block-color palette. The compiler
+renders every specified pixel as one real block, with orientations
+north/south/east/west, top-to-bottom rows, optional transparent pixels
+and fully validated allowed materials. **No template artwork** is
+stored or selected by the engine.
+
+Artwork/portrait text prompts trigger dedicated model instructions
+to draw a 32×32 shaded face/bust with 12–20 tones and coherent
+facial proportions. Artwork validation rejects large-box-only plans,
+jagged pixel rows, invalid palette characters and over-simplified
+portrait matrices (small image, too few actual colors, very low
+variation or almost-blank canvas). With `retryMalformedJson=true`,
+one extra billable model attempt can be requested. This is NOT
+a guarantee that a language model can render a photorealistic face.
+
+The canvas is limited to 64×64 in schema and still constrained by
+the world's existing build perimeter, height and total block budget.
+Glass panes become full glass blocks if used as pixels; doors,
+thin furniture and unsafe blocks are rejected. The model's original
+pixel rows are archived with the last validated JSON and its
+resolution/color count is shown in-game.
+
+`/ai selftest` additionally exercises 1024 pixels in an original
+synthetic 32×32 color grid, without actually building or spending API
+credits. Use the F7 prompt: "Draw a detailed, front-facing 32x32
+pixel-art bust portrait of a person, with layered hair, facial
+shading, realistic eye proportions, nose, lips, neck, clothing and
+a contrasting background. Use at least 12 Minecraft block colors."
+
+**Limitation:** this is text-to-pixel-matrix generation, not a
+vision/image-generation backend or a source-photo converter. Exact
+real-person likeness needs a separate image-driven workflow.
+
 
 ## 0.9.1 — raise original AI blueprint limit safely
 
