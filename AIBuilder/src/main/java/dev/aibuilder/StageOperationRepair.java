@@ -72,6 +72,10 @@ public final class StageOperationRepair {
             if(primitive!=null&&!primitive.equals(inferred))
                 throw failure(type,"противоречивые подсказки геометрии.");
             primitive=inferred;
+            // "shape" is also a Minecraft stair BlockState property. When
+            // used here as an operation hint (shape=arch/box/etc), remove it
+            // before applyProperties tries to apply "arch" to a stair state.
+            if(hint.equals("shape"))operation.remove("shape");
         }
         if(primitive==null)
             primitive=inferSimpleShape(operation,type,material);
