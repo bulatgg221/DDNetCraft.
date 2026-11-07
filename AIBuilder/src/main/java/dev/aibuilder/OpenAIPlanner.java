@@ -198,6 +198,11 @@ public final class OpenAIPlanner {
         Use actual fully expanded and coherent pixel sequences.
         You must INVENT EACH ROW and EACH COLOR from the requested subject.
 
+        The program can automatically correct minor row-length discrepancies
+        WITHOUT another API request. Still produce consistent rows close
+        to 32 columns and aim for 32 rows. Do not output row indexes,
+        spaces used as visual separators or explanatory text inside rows.
+
         For a human portrait: draw at 32x32 pixels (32 rows, exactly 32
         characters in EVERY row); use 12–20 distinct colors/tones, of which
         at least 9 are actually USED in the rows. Keep picture height <=32
@@ -254,6 +259,12 @@ public final class OpenAIPlanner {
                 try {
                     return requestPlan(prompt,config,key,false);
                 } catch (InvalidPlanJson invalid) {
+                    if (ArtworkMode.isArtwork(prompt) && !config.retryArtwork)
+                        throw new IllegalStateException(
+                            "Рисунок ИИ не прошёл проверку даже после бесплатного исправления: "
+                            + invalid.getMessage()
+                            + ". Повторный платный запрос отключён (retryArtwork=false). "
+                            + "Можно изменить его в config/aibuilder/config.json.");
                     if (!config.retryMalformedJson)
                         throw new IllegalStateException(
                             "План ИИ отклонён: "+invalid.getMessage()
