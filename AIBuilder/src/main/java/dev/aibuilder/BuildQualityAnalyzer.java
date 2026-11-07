@@ -31,7 +31,7 @@ public final class BuildQualityAnalyzer {
     }
 
     public static Assessment inspect(String prompt,String json,
-                                     PlanCompiler.CompiledPlan plan) {
+                                     PlanCompiler.CompiledPlan plan,BlockPos origin) {
         if(plan.blocks().isEmpty())
             throw new IllegalArgumentException("Невозможно оценить пустой чертёж.");
         int minX=Integer.MAX_VALUE,minY=Integer.MAX_VALUE,minZ=Integer.MAX_VALUE;
@@ -100,7 +100,10 @@ public final class BuildQualityAnalyzer {
         for(ArchitectureSpec.Region r:architecture.regions()){
             boolean occupied=false;
             for(BlockPos pos:positions.keySet()){
-                if(r.contains(pos.getX(),pos.getY(),pos.getZ())){
+                // Semantic JSON uses player-relative coordinates;
+                // placements are absolute world positions.
+                if(r.contains(pos.getX()-origin.getX(),
+                    pos.getY()-origin.getY(),pos.getZ()-origin.getZ())){
                     occupied=true;break;
                 }
             }
