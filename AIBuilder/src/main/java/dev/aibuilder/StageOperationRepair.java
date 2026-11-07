@@ -41,6 +41,18 @@ public final class StageOperationRepair {
         if(operation.has("operations")||operation.has("blocks"))
             throw failure(type,"вложенный список операций не поддерживается. "
                 +"Каждый элемент должен быть отдельной операцией в operations.");
+        // Some providers use "material"/"block_id" for the literal block.
+        // Treat these as aliases only when no canonical "block" exists.
+        if(!operation.has("block")) {
+            for(String alias:new String[]{"material","block_id"}) {
+                if(operation.has(alias) && operation.get(alias).isJsonPrimitive()
+                    && operation.getAsJsonPrimitive(alias).isString()) {
+                    operation.addProperty("block",
+                        operation.get(alias).getAsString());
+                    break;
+                }
+            }
+        }
         if(!operation.has("block")||!operation.get("block").isJsonPrimitive()||
             !operation.getAsJsonPrimitive("block").isString())
             throw failure(type,"отсутствует настоящий block=<ID материала>. "
