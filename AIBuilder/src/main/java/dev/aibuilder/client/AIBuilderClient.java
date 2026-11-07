@@ -19,6 +19,8 @@ public final class AIBuilderClient implements ClientModInitializer {
     private static volatile AIBuilderClient INSTANCE;
     private boolean openRequested = false;
     private boolean promptRequested = false;
+    private boolean previewRequested = false;
+    private PreviewScreen.Data nextPreview;
 
     /** May be invoked by the integrated server's /ai key command, but never from a dedicated server. */
     public static void requestOpen() {
@@ -27,6 +29,17 @@ public final class AIBuilderClient implements ClientModInitializer {
             if (INSTANCE != null) INSTANCE.openRequested = true;
         });
     }
+    /** Called only by the local integrated server; never sends files or API keys. */
+    public static void requestPreviewOpen(PreviewScreen.Data preview) {
+        MinecraftClient client=MinecraftClient.getInstance();
+        client.execute(()->{
+            if(INSTANCE!=null){
+                INSTANCE.nextPreview=preview;
+                INSTANCE.previewRequested=true;
+            }
+        });
+    }
+
     private KeyBinding openKey;
     private KeyBinding promptKey;
 
@@ -79,9 +92,17 @@ public final class AIBuilderClient implements ClientModInitializer {
                 promptRequested = false;
                 client.setScreen(new PromptScreen());
             }
+            if (previewRequested && client.player != null && client.currentScreen == null) {
+                previewRequested = false;
+                PreviewScreen.Data toShow=nextPreview;
+                nextPreview=null;
+                if(toShow!=null)client.setScreen(new PreviewScreen(toShow));
+            }
             if (client.player == null) {
                 openRequested = false;
                 promptRequested = false;
+                previewRequested = false;
+                nextPreview=null;
             }
         });
     }
