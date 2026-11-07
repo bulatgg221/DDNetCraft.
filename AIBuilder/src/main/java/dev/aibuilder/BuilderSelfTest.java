@@ -134,6 +134,9 @@ public final class BuilderSelfTest {
         list.add(s("round stone tower","hollow_cylinder","deepslate_bricks",100,1,5,1));
         list.add(s("solid watch tower base","cylinder","stone_bricks",65,1,5,1));
         list.add(s("archway","arch","stone_bricks",13,5,5,1));
+        // GPT-4.1 and other LLMs sometimes emit the English plural.
+        // Test the real compiler path, not just the name-normalization unit.
+        list.add(s("LLM plural arches","arches","stone_bricks",13,5,5,1));
         list.add(s("gable facade","gable_fill","stone_bricks",16,7,1,1));
         list.add(s("small sandstone sphere","sphere","sandstone",33,1,1,1));
         // A synthetic 32x32 color matrix tests all 1024 pixel placements.
