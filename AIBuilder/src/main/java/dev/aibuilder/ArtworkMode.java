@@ -45,6 +45,7 @@ public final class ArtworkMode {
         JsonArray ops=root.getAsJsonArray("operations");
         if(ops==null)throw new IllegalArgumentException("План рисунка без operations.");
         boolean found=false;
+        boolean changed=false;
         boolean portrait=isPortrait(prompt);
         for(JsonElement element:ops){
             if(!element.isJsonObject())continue;
@@ -58,13 +59,17 @@ public final class ArtworkMode {
                 continue;
             }
             found=true;
+            // Repair minor inconsistencies once, BEFORE we validate the
+            // portrait or return it for actual block placement.
+            // This uses NO Polza/OpenAI requests.
+            changed |= PixelArtRows.normalizeInPlace(op,portrait);
             PixelArtLayout.Canvas canvas=PixelArtLayout.parse(op,allowed);
             if(portrait)requireDetailedPortrait(canvas);
         }
         if(!found)throw new IllegalArgumentException(
             "Для картины нужен оригинальный pixel_art с матрицей цветов, "
             +"а не несколько больших прямоугольников.");
-        return plan;
+        return changed?root.toString():plan;
     }
 
     public static void requireDetailedPortrait(PixelArtLayout.Canvas canvas) {
