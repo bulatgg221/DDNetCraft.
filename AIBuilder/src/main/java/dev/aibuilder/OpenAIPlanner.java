@@ -254,13 +254,15 @@ public final class OpenAIPlanner {
                 } catch (InvalidPlanJson invalid) {
                     if (!config.retryMalformedJson)
                         throw new IllegalStateException(
-                            "ИИ прислал неподходящий план. Включи retryMalformedJson в config.json или уточни запрос.");
+                            "План ИИ отклонён: "+invalid.getMessage()
+                            +". Включи retryMalformedJson в config.json для автоматической повторной попытки.");
                     AIBuilderMod.LOG.warn("AI Builder: malformed model plan; requesting one fresh shorter plan (extra API tokens may be charged).");
                     try {
                         return requestPlan(prompt,config,key,true);
                     } catch (InvalidPlanJson retryFailed) {
                         throw new IllegalStateException(
-                            "ИИ дважды не смог составить оригинальный план. Попробуй упростить постройку или другую модель.");
+                            "Две попытки ИИ не прошли проверку: "+retryFailed.getMessage()
+                            +". Попробуй уточнить изображение или поменять модель.");
                     }
                 }
             } catch (Exception exception) {
