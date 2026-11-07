@@ -1,4 +1,4 @@
-# AI Builder V2 0.11.0-alpha.3 — original AI architecture and preview
+# AI Builder V2 0.11.0-alpha.4 — original AI architecture and preview
 
 **Experimental branch**: This is a working development milestone, NOT a fully
 completed implementation of the full product specification.
