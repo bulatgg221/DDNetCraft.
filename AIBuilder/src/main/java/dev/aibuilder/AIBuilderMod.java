@@ -207,7 +207,8 @@ public final class AIBuilderMod implements ModInitializer {
                                 PlanCompiler.CompiledPlan plan=PlanCompiler.compile(
                                     json,p.getBlockPos().toImmutable(),config);
                                 BuildQualityAnalyzer.Assessment audit=
-                                    BuildQualityAnalyzer.inspect("",json,plan,p.getBlockPos().toImmutable());
+                                    BuildQualityAnalyzer.inspect(SavedBlueprintBrief.extract(json),
+                                        json,plan,p.getBlockPos().toImmutable());
                                 BuildService.INSTANCE.offerPreview(p,plan,audit);
                                 return 1;
                             }catch(Exception e){
@@ -388,7 +389,7 @@ public final class AIBuilderMod implements ModInitializer {
                                             +" оттенков ("+canvas.paintedPixels()+" пикселей).");
                                     }
                                 }
-                                GeneratedPlanArchive.trySave(json);
+                                GeneratedPlanArchive.trySaveWithPrompt(json,designBrief);
                                 BuildService.tell(current, "Оригинальный чертёж ИИ: "
                                     + plan.operations() + " операций, "
                                     + plan.blocks().size() + " блоков. "
