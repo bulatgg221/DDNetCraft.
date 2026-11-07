@@ -39,8 +39,9 @@ public final class PlanCompiler {
         String name = string(root, "name", "AI Building");
         if (name.length() > 80) name = name.substring(0,80);
         JsonArray ops = root.getAsJsonArray("operations");
-        if (ops == null || ops.isEmpty() || ops.size() > cfg.maxOperations)
-            throw new IllegalArgumentException("Слишком много операций: макс. " + cfg.maxOperations);
+        if (ops == null || ops.isEmpty())
+            throw new IllegalArgumentException("Пустой список строительных операций.");
+        BuildLimits.requireConfiguredOperations(ops.size(),cfg.maxOperations);
         // Expand a parametric house to a deterministic, internally consistent design.
         // Model output remains bounded by the same overall operation and block limits.
         List<JsonElement> expanded = new ArrayList<>();
@@ -52,11 +53,10 @@ public final class PlanCompiler {
                     .contains(string(operation.getAsJsonObject(),"type",""))) {
                 expanded.addAll(CastleLayouts.expand(operation.getAsJsonObject()));
             } else expanded.add(operation);
-            if (expanded.size() > cfg.maxOperations)
-                throw new IllegalArgumentException("Слишком много операций после раскрытия дома: "
-                    + expanded.size() + " (максимум " + cfg.maxOperations + ").");
+            BuildLimits.requireConfiguredOperations(expanded.size(),cfg.maxOperations);
         }
-        Map<BlockPos, Staged> blocks = new LinkedHashMap<>();
+        BudgetedPlacements blocks=new BudgetedPlacements(
+            BuildLimits.maxPlacementAttempts(cfg.maxBlocks));
         int adjustedOperations = 0;
         int operationIndex = 0;
         for (JsonElement entry : expanded) {
@@ -384,8 +384,25 @@ public final class PlanCompiler {
     private static int number(JsonObject o,String k,int fallback){
         return o.has(k) && !o.get(k).isJsonNull()?o.get(k).getAsInt():fallback;
     }
-    private static void add(Map<BlockPos,Staged> out,BlockPos origin,BuilderConfig cfg,
+    /**
+     * Bounds attempted placements as well as unique changed blocks.
+     * 400+ overlapping small operations must not freeze the integrated server.
+     */
+    private static final class BudgetedPlacements extends LinkedHashMap<BlockPos,Staged> {
+        private final long limit;
+        private long attempts;
+        BudgetedPlacements(long limit){this.limit=limit;}
+        void countAttempt(){
+            if(++attempts>limit)
+                throw new IllegalArgumentException(
+                    "Слишком много наложений блоков в одном плане (предел "
+                    +limit+"). Уменьши число повторяющихся/перекрывающихся деталей.");
+        }
+    }
+
+    private static void add(BudgetedPlacements out,BlockPos origin,BuilderConfig cfg,
         int x,int y,int z,BlockState state,int stage){
+        out.countAttempt();
         if(Math.abs(x)>cfg.maxHorizontalDistance || Math.abs(z)>cfg.maxHorizontalDistance ||
             Math.abs(y)>cfg.maxVerticalDistance)
             throw new IllegalArgumentException("Постройка вышла за границы (настройки config).");
