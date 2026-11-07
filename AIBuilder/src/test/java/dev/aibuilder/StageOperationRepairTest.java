@@ -89,6 +89,16 @@ final class StageOperationRepairTest {
             ""","box","walls");
     }
 
+    @Test void explicitMaterialAliasesPreserveRealMinecraftBlocks(){
+        JsonObject op=op("""
+            {"type":"details","material":"stone_bricks",
+             "x":17,"y":2,"z":12}
+            """);
+        assertTrue(StageOperationRepair.normalize(op,MaterialCatalog.allowedIds()));
+        assertEquals("block",op.get("type").getAsString());
+        assertEquals("stone_bricks",op.get("block").getAsString());
+    }
+
     @Test void nativeShapeNamesAreNeverReinterpreted(){
         JsonObject data=op("""
             {"type":"roof_stairs","stage":"roof","block":"dark_oak_stairs",
