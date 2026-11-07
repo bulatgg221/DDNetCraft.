@@ -24,6 +24,28 @@ public final class BuildLimits {
         return Math.clamp(configured, 1, HARD_MAX_OPERATIONS);
     }
 
+    /**
+     * Parser guards the absolute limit before any expensive geometry handling.
+     * Even explicitly increased user limits must fit the hard parser cap.
+     */
+    public static void requireParsedOperations(int count) {
+        if (count < 1 || count > HARD_MAX_OPERATIONS)
+            throw new IllegalArgumentException(
+                "Слишком много операций в JSON: " + count
+                + " (технический максимум " + HARD_MAX_OPERATIONS + ").");
+    }
+
+    /** Preserves an explicitly configured user ceiling after migration. */
+    public static void requireConfiguredOperations(int count, int allowed) {
+        requireParsedOperations(count);
+        int safeLimit=Math.clamp(allowed,1,HARD_MAX_OPERATIONS);
+        if(count > safeLimit)
+            throw new IllegalArgumentException(
+                "Слишком много операций: " + count + " (лимит " + safeLimit
+                + "). Увеличь maxOperations в config/aibuilder/config.json до "
+                + HARD_MAX_OPERATIONS + " при необходимости.");
+    }
+
     /** Upper bound on attempted placements, including repeated overwritten cells. */
     public static long maxPlacementAttempts(int maxBlocks) {
         return Math.max(20_000L, (long)Math.max(100,maxBlocks) * 12L);
