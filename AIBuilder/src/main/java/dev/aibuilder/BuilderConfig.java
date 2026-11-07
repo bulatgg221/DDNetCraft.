@@ -71,8 +71,10 @@ public final class BuilderConfig {
             if (config == null) throw new IllegalArgumentException("Пустой config.json");
             // Keep the existing OpenAI setup intact when upgrading from version 0.2.x.
             if (!parsed.has("provider")) config.provider = "openai";
-            // Gson initializes missing primitive boolean fields to false for old config files.
+            // Gson may initialize missing primitives to zero in older config files.
             if (!parsed.has("retryMalformedJson")) config.retryMalformedJson = true;
+            if (!parsed.has("maxOperations"))
+                config.maxOperations = BuildLimits.DEFAULT_OPERATIONS;
             if (!"polza".equals(config.provider) && !"openai".equals(config.provider))
                 config.provider = "openai";
             if (config.model == null || !config.model.matches("[a-zA-Z0-9][a-zA-Z0-9._/-]{1,99}"))
