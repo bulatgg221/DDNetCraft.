@@ -256,7 +256,9 @@ public final class AIBuilderMod implements ModInitializer {
                             ServerPlayerEntity current = server.getPlayerManager().getPlayer(player.getUuid());
                             if (current == null || !current.getWorld().getRegistryKey().equals(worldKey)) return;
                             if (error != null) {
-                                BuildService.tell(current, "Ошибка API " + BuilderConfig.providerName(snapshot.provider) + ": " + shortMessage(error));
+                                BuildService.tell(current, "Ошибка генерации через "
+                                    + BuilderConfig.providerName(snapshot.provider)
+                                    + ": " + shortMessage(error));
                                 return;
                             }
                             try {
