@@ -74,6 +74,22 @@ public final class OpenAIPlanner {
         Artwork/pixel_art requests may omit architecture and supply the
         pixel canvas inside operations directly.
 
+        CRITICAL JSON SCHEMA — DO NOT MIX "type" WITH "stage".
+        "type" means the EXACT geometric primitive that will place blocks,
+        e.g. "box", "hollow_box", "arch", "block", "door",
+        "roof_stairs", "cylinder". NEVER set type to a construction stage
+        such as "details", "walls", "foundation", "roof", "openings",
+        "interior" or "landscape". Those labels belong ONLY in "stage".
+        A decorative lantern is:
+        {"type":"block","stage":"details","block":"lantern",
+         "x":10,"y":4,"z":12}
+        NOT {"type":"details","block":"lantern","x":10,"y":4,"z":12}.
+        A stone carving spanning multiple blocks is:
+        {"type":"box","stage":"details","block":"stone_bricks",
+         "x":10,"y":4,"z":12,"w":5,"h":1,"d":1}.
+        Never wrap groups of shapes inside a single "details" operation;
+        put each original primitive in the flat operations array.
+
         For architecture primitives each operation needs type, stage, block,
         x,y,z. For pixel_art ONLY, supply type, stage, x,y,z, palette, rows
         (the colors are declared in palette, not a separate block property).
@@ -199,8 +215,11 @@ public final class OpenAIPlanner {
         interior (5), landscape (6).
         A higher stage replaces blocks from earlier stages at the same position.
         Doors, beds and their reserved space should not be covered.
-        Use "openings" + "block":"air" to carve windows/entrances in walls,
-        THEN "details" + door or glass_pane at matching coordinates.
+        Carve openings using {"type":"box","stage":"openings",
+        "block":"air",...}, THEN fill them with
+        {"type":"door","stage":"details","block":"oak_door",...}
+        or {"type":"box","stage":"details","block":"glass_pane",...}.
+        NEVER write {"type":"details",...} or {"type":"openings",...}.
         DO NOT use "hollow_box" as a giant filled room.
         For intricate stone castle walls, use slender box ops (h/d = 1) and
         cylinder towers with clear interiors. Towers need intentional access.
