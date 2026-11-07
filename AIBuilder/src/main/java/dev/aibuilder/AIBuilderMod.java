@@ -71,6 +71,7 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai selftest — проверить палитру и операции без постройки и API.");
                     BuildService.tell(player, "/ai confirm или /ai discard — решение по предпросмотру ДО стройки.");
                     BuildService.tell(player, "/ai undo, /ai redo, /ai cancel, /ai preview, /ai status, /ai setup, /ai reload");
+                    BuildService.tell(player, "/ai saveplan <имя>, /ai loadplan <имя>, /ai history — без API.");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 12000 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
                     return 1;
@@ -128,6 +129,60 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(ctx.getSource().getPlayerOrThrow(), "Конфигурация перечитана.");
                     return 1;
                 }))
+                .then(CommandManager.literal("history").executes(ctx -> {
+                    ServerPlayerEntity p=ctx.getSource().getPlayerOrThrow();
+                    if(!allowed(p,ctx.getSource().getServer()))return 0;
+                    try {
+                        var saved=ProjectStore.list();
+                        BuildService.tell(p,saved.isEmpty()
+                            ?"Сохранённых чертежей нет."
+                            :"Сохранённые проекты: "+String.join(", ",saved));
+                        return 1;
+                    }catch(Exception e){
+                        BuildService.tell(p,"Не удалось прочесть проекты: "+shortMessage(e));
+                        return 0;
+                    }
+                }))
+                .then(CommandManager.literal("saveplan")
+                    .then(CommandManager.argument("name",StringArgumentType.word())
+                        .executes(ctx -> {
+                            ServerPlayerEntity p=ctx.getSource().getPlayerOrThrow();
+                            if(!allowed(p,ctx.getSource().getServer()))return 0;
+                            String name=StringArgumentType.getString(ctx,"name");
+                            try {
+                                ProjectStore.saveLast(name);
+                                BuildService.tell(p,"Оригинальный чертёж сохранён: "+name
+                                    +". /ai loadplan "+name+" для повторного просмотра.");
+                                return 1;
+                            }catch(Exception e){
+                                BuildService.tell(p,"Сохранение не удалось: "+shortMessage(e));
+                                return 0;
+                            }
+                        })))
+                .then(CommandManager.literal("loadplan")
+                    .then(CommandManager.argument("name",StringArgumentType.word())
+                        .executes(ctx -> {
+                            ServerPlayerEntity p=ctx.getSource().getPlayerOrThrow();
+                            if(!allowed(p,ctx.getSource().getServer()))return 0;
+                            if(BuildService.INSTANCE.isBusy()){
+                                BuildService.tell(p,"Сначала заверши предыдущую работу.");
+                                return 0;
+                            }
+                            String name=StringArgumentType.getString(ctx,"name");
+                            try {
+                                String json=ProjectStore.load(name);
+                                GeneratedPlanGuard.requireOriginalGeometry(json);
+                                PlanCompiler.CompiledPlan plan=PlanCompiler.compile(
+                                    json,p.getBlockPos().toImmutable(),config);
+                                BuildQualityAnalyzer.Assessment audit=
+                                    BuildQualityAnalyzer.inspect("",json,plan);
+                                BuildService.INSTANCE.offerPreview(p,plan,audit);
+                                return 1;
+                            }catch(Exception e){
+                                BuildService.tell(p,"Загрузка не удалась: "+shortMessage(e));
+                                return 0;
+                            }
+                        })))
                 .then(CommandManager.literal("demo").executes(ctx -> {
                     ServerPlayerEntity player = ctx.getSource().getPlayerOrThrow();
                     MinecraftServer server = ctx.getSource().getServer();
