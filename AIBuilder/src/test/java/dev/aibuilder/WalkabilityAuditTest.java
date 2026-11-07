@@ -46,8 +46,11 @@ final class WalkabilityAuditTest {
 
     @Test void identifiesCeilingWithInsufficientHeadroom(){
         Map<WalkabilityAudit.Cell,String> voxels=floors();
-        for(int x=1;x<8;x++)for(int z=1;z<4;z++)
+        for(int x=1;x<8;x++)for(int z=1;z<4;z++){
             voxels.put(new WalkabilityAudit.Cell(x,2,z),"stone_bricks");
+            // Otherwise the ceiling becomes a valid upper-level floor.
+            voxels.put(new WalkabilityAudit.Cell(x,4,z),"stone_bricks");
+        }
         var issues=WalkabilityAudit.inspect(twoConnectedRooms(),voxels);
         assertTrue(issues.stream().anyMatch(s->s.contains("высотой 2")),
             issues.toString());
