@@ -175,7 +175,7 @@ public final class AIBuilderMod implements ModInitializer {
                                 PlanCompiler.CompiledPlan plan=PlanCompiler.compile(
                                     json,p.getBlockPos().toImmutable(),config);
                                 BuildQualityAnalyzer.Assessment audit=
-                                    BuildQualityAnalyzer.inspect("",json,plan);
+                                    BuildQualityAnalyzer.inspect("",json,plan,p.getBlockPos().toImmutable());
                                 BuildService.INSTANCE.offerPreview(p,plan,audit);
                                 return 1;
                             }catch(Exception e){
@@ -362,7 +362,7 @@ public final class AIBuilderMod implements ModInitializer {
                                     + plan.blocks().size() + " блоков. "
                                     + "План сохранён в config/aibuilder/last-generated-plan.json.");
                                 BuildQualityAnalyzer.Assessment quality=
-                                    BuildQualityAnalyzer.inspect(designBrief,json,plan);
+                                    BuildQualityAnalyzer.inspect(designBrief,json,plan,anchor);
                                 service.offerPreview(current,plan,quality);
                             } catch (Exception ex) {
                                 BuildService.tell(current, "План отклонён: " + shortMessage(ex));
