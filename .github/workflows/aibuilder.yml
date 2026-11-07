@@ -35,15 +35,7 @@ jobs:
           java -cp /tmp/aibuilder-alias-tests dev.aibuilder.MaterialAliasesSmokeTest
       - name: Pack complete AI Builder V2 source project
         run: |
-          zip -q -r AIBuilder-V2-Source-0.11.0-alpha.1.zip \\
-            AIBuilder/build.gradle \\
-            AIBuilder/settings.gradle \\
-            AIBuilder/gradle.properties \\
-            AIBuilder/src \\
-            AIBuilder/README_RU.md \\
-            AIBuilder/README.md \\
-            AIBuilder/V2_README_RU.md \\
-            .github/workflows/aibuilder.yml
+          zip -q -r AIBuilder-V2-Source-0.11.0-alpha.1.zip AIBuilder/build.gradle AIBuilder/settings.gradle AIBuilder/gradle.properties AIBuilder/src AIBuilder/README_RU.md AIBuilder/README.md AIBuilder/V2_README_RU.md .github/workflows/aibuilder.yml
       - name: Upload AI Builder V2 sources
         uses: actions/upload-artifact@v7
         with:
