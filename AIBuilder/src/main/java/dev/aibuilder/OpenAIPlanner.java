@@ -184,16 +184,18 @@ public final class OpenAIPlanner {
         avoid is a flat crude face formed from 5 enormous colored regions.
         Instead generate a NEW original COLOR-MATRIX pixel portrait.
 
-        Return strict compact JSON:
-        {"name":"Original portrait","operations":[
-         {"type":"pixel_art","stage":"details","x":32,"y":0,"z":8,
-          "facing":"north",
-          "palette":{"A":"black_concrete","B":"brown_terracotta",
-                     "C":"orange_terracotta","D":"white_concrete"},
-          "rows":[ ... ORIGINAL full-length color strings ... ]}
-        ]}
-        The example palette is ONLY an illustration of the JSON FORMAT.
-        Do not reuse it as a fixed face or limit yourself to four colors.
+        Return exactly one complete compact JSON object with a "name" and
+        "operations" array containing an original "pixel_art" object.
+        Required fields of that object:
+        "type" = "pixel_art", "stage" = "details", "x" = 32,
+        "y" = 0, "z" = 8, "facing" = "north",
+        "palette" = an object mapping 12–20 distinct single-character
+        ASCII letters/digits to valid full Minecraft block IDs,
+        "rows" = an array of exactly 32 independently designed STRINGS
+        of EXACTLY 32 palette symbols EACH, ordered top to bottom.
+        Never output ellipses, placeholders, 'repeat N times', comments,
+        markdown, coordinates in a row, or empty unfinished rows.
+        Use actual fully expanded and coherent pixel sequences.
         You must INVENT EACH ROW and EACH COLOR from the requested subject.
 
         For a human portrait: draw at 32x32 pixels (32 rows, exactly 32
