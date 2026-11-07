@@ -84,6 +84,14 @@ public final class PlanCompiler {
             BlockState material = block(resolved.block() == null
                 ? fallback(type) : resolved.block());
             switch(type) {
+                case "pixel_art" -> {
+                    PixelArtLayout.Canvas canvas=PixelArtLayout.parse(op,MATERIALS);
+                    Map<String,BlockState> pixelMaterials=new java.util.HashMap<>();
+                    canvas.forEachPixel((dx,dy,dz,id) -> {
+                        BlockState pixel=pixelMaterials.computeIfAbsent(id,PlanCompiler::block);
+                        add(blocks,origin,cfg,x+dx,y+dy,z+dz,pixel,stage);
+                    });
+                }
                 case "box", "hollow_box" -> {
                     material = applyProperties(material,op);
                     for(int dx=0;dx<w;dx++) for(int dy=0;dy<h;dy++) for(int dz=0;dz<d;dz++)
@@ -279,7 +287,7 @@ public final class PlanCompiler {
     private static int stage(JsonObject op,String type){
         String fallback=switch(type){
             case "roof_stairs","hip_roof","gable_roof","gable_fill" -> "roof";
-            case "door","block","line","arch" -> "details";
+            case "door","block","line","arch","pixel_art" -> "details";
             case "bed","table","chair","stairs_run" -> "interior";
             case "tree" -> "landscape";
             default -> "walls";
