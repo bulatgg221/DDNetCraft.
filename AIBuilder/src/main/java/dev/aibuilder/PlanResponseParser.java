@@ -106,6 +106,11 @@ public final class PlanResponseParser {
                         throw new IllegalArgumentException("Поле " + name + " должно быть true или false.");
                 }
             }
+            // The LLM sometimes writes stage labels (for example details)
+            // in the operation type field. Recover only unambiguous geometry
+            // locally before returning the archived/compiled JSON; no extra
+            // paid model requests are involved.
+            StageOperationRepair.normalize(object,MaterialCatalog.allowedIds());
         }
         return root;
     }
