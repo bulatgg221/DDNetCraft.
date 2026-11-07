@@ -93,6 +93,24 @@ final class CastleStructureAuditTest {
         assertTrue(result.canBuild());
     }
 
+    @Test void warnsAboutScreenshotStyleHugeUndetailedStoneFacade(){
+        var blocks=complete();
+        for(int x=7;x<28;x++)
+            for(int y=2;y<14;y++)
+                blocks.put(new WalkabilityAudit.Cell(x,y,14),"stone_bricks");
+        var result=CastleStructureAudit.inspect(REQUEST,regions(),blocks);
+        assertTrue(result.warnings().stream().anyMatch(
+            msg->msg.contains("каменная стена")||msg.contains("глухая")),
+            result.warnings().toString());
+    }
+
+    @Test void alreadyDetailedGateAndTowerGeometryDoNotTriggerFacadeWarning(){
+        var result=CastleStructureAudit.inspect(REQUEST,regions(),complete());
+        assertFalse(result.warnings().stream().anyMatch(
+            msg->msg.contains("каменная стена")||msg.contains("глухая")),
+            result.warnings().toString());
+    }
+
     @Test void russianInflectionsAreActuallyRecognized(){
         assertEquals(4,RequestedFeatures.towers(
             "Замок с четырьмя мощными угловыми башнями"));
