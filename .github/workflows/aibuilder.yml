@@ -33,6 +33,23 @@ jobs:
           mkdir -p /tmp/aibuilder-alias-tests
           javac -d /tmp/aibuilder-alias-tests AIBuilder/src/main/java/dev/aibuilder/MaterialAliases.java AIBuilder/tests/dev/aibuilder/MaterialAliasesSmokeTest.java
           java -cp /tmp/aibuilder-alias-tests dev.aibuilder.MaterialAliasesSmokeTest
+      - name: Pack complete AI Builder V2 source project
+        run: |
+          zip -q -r AIBuilder-V2-Source-0.11.0-alpha.1.zip \\
+            AIBuilder/build.gradle \\
+            AIBuilder/settings.gradle \\
+            AIBuilder/gradle.properties \\
+            AIBuilder/src \\
+            AIBuilder/README_RU.md \\
+            AIBuilder/README.md \\
+            AIBuilder/V2_README_RU.md \\
+            .github/workflows/aibuilder.yml
+      - name: Upload AI Builder V2 sources
+        uses: actions/upload-artifact@v7
+        with:
+          name: AIBuilder-V2-Source
+          path: AIBuilder-V2-Source-0.11.0-alpha.1.zip
+          if-no-files-found: error
       - name: Upload mod JAR
         uses: actions/upload-artifact@v7
         with:
