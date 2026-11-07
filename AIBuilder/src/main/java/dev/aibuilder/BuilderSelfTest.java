@@ -80,6 +80,34 @@ public final class BuilderSelfTest {
                 failures.add(scenario.name()+": "+ex.getMessage());
             }
         }
+        // A complete 400-operation freeform design should pass the same
+        // parser/compiler path used by F7, without placing anything in-game.
+        scenarios++;
+        try {
+            int requested=Math.min(config.maxOperations,BuildLimits.DEFAULT_OPERATIONS);
+            JsonObject large=new JsonObject();
+            large.addProperty("name","Large freeform operation limit QA");
+            JsonArray ops=new JsonArray();
+            for(int i=0;i<requested;i++){
+                JsonObject op=new JsonObject();
+                op.addProperty("type","block");
+                op.addProperty("stage","details");
+                op.addProperty("block",i%2==0?"stone_bricks":"purple_stained_glass_pane");
+                op.addProperty("x",6+i%20);
+                op.addProperty("y",0);
+                op.addProperty("z",6+i/20);
+                ops.add(op);
+            }
+            large.add("operations",ops);
+            String validated=PlanResponseParser.normalize(large.toString());
+            PlanCompiler.CompiledPlan result=PlanCompiler.compile(
+                validated,origin,config);
+            if(result.operations()!=requested || result.blocks().size()!=requested)
+                failures.add("Long plan QA: expected "+requested+
+                    " operations/blocks, got "+result.operations()+"/"+result.blocks().size());
+        }catch(Exception ex){
+            failures.add("Large freeform plan (100+ operations): "+ex.getMessage());
+        }
         return new Result(checked,scenarios,List.copyOf(failures));
     }
 
