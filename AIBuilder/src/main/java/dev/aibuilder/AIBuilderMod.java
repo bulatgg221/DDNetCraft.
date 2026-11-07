@@ -72,6 +72,7 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai confirm или /ai discard — решение по предпросмотру ДО стройки.");
                     BuildService.tell(player, "/ai undo, /ai redo, /ai cancel, /ai preview, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai saveplan <имя>, /ai loadplan <имя>, /ai history — без API.");
+                    BuildService.tell(player, "/ai importimage <имя> — PNG из config/aibuilder/imports/имя.png в пиксель-арт 32×32.");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 12000 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
                     return 1;
@@ -129,6 +130,37 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(ctx.getSource().getPlayerOrThrow(), "Конфигурация перечитана.");
                     return 1;
                 }))
+                .then(CommandManager.literal("importimage")
+                    .then(CommandManager.argument("name",StringArgumentType.word())
+                        .executes(ctx -> {
+                            ServerPlayerEntity p=ctx.getSource().getPlayerOrThrow();
+                            if(!allowed(p,ctx.getSource().getServer()))return 0;
+                            if(BuildService.INSTANCE.isBusy()){
+                                BuildService.tell(p,"Сначала заверши предыдущий проект.");
+                                return 0;
+                            }
+                            String name=StringArgumentType.getString(ctx,"name");
+                            try {
+                                var image=ImageToBlocks.readImportedPng(name);
+                                String json=ImageToBlocks.convert(image,"PNG "+name,32).toString();
+                                GeneratedPlanGuard.requireOriginalGeometry(json);
+                                BlockPos anchor=p.getBlockPos().toImmutable();
+                                PlanCompiler.CompiledPlan plan=PlanCompiler.compile(
+                                    json,anchor,config);
+                                BuildQualityAnalyzer.Assessment quality=
+                                    BuildQualityAnalyzer.inspect("pixel art PNG",
+                                        json,plan,anchor);
+                                GeneratedPlanArchive.trySave(json);
+                                BuildService.INSTANCE.offerPreview(p,plan,quality);
+                                BuildService.tell(p,
+                                    "Реальная PNG-картинка преобразована в 32×32 блоков без API.");
+                                return 1;
+                            }catch(Exception e){
+                                BuildService.tell(p,
+                                    "Импорт PNG не удался: "+shortMessage(e));
+                                return 0;
+                            }
+                        })))
                 .then(CommandManager.literal("history").executes(ctx -> {
                     ServerPlayerEntity p=ctx.getSource().getPlayerOrThrow();
                     if(!allowed(p,ctx.getSource().getServer()))return 0;
