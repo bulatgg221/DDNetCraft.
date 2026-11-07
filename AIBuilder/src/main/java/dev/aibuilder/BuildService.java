@@ -104,15 +104,22 @@ public final class BuildService {
         tell(player,"ПРЕДПРОСМОТР «"+plan.name()+"»: "+quality.summary()+".");
         if(!quality.dominantMaterials().isEmpty())
             tell(player,"Основные материалы: "+String.join(", ",quality.dominantMaterials())+".");
-        for(int i=0;i<Math.min(5,quality.warnings().size());i++)
+        for(String blocker:quality.blockers())
+            tell(player,"§cКРИТИЧЕСКАЯ ПРОБЛЕМА: "+blocker);
+        for(int i=0;i<Math.min(4,quality.warnings().size());i++)
             tell(player,"⚠ "+quality.warnings().get(i));
-        if(quality.warnings().size()>5)
-            tell(player,"И ещё "+(quality.warnings().size()-5)+" предупреждений.");
-        tell(player,"Мир НЕ изменён. /ai confirm — построить, /ai discard — отказаться.");
+        if(quality.warnings().size()>4)
+            tell(player,"И ещё "+(quality.warnings().size()-4)+" предупреждений.");
+        if(quality.canBuild())
+            tell(player,"Мир НЕ изменён. /ai confirm — построить, /ai discard — отказаться.");
+        else
+            tell(player,"§cСтроительство ЗАБЛОКИРОВАНО: неполная архитектура. "
+                +"/ai discard — отменить без изменения мира. "
+                +"Повторный платный запрос к API не выполняется.");
         dev.aibuilder.client.AIBuilderClient.requestPreviewOpen(
             new dev.aibuilder.client.PreviewScreen.Data(
                 plan.name(),quality.dimensions(),quality.blocks(),plan.operations(),
-                quality.warnings(),quality.dominantMaterials()));
+                quality.warnings(),quality.dominantMaterials(),quality.blockers()));
     }
 
     public void confirm(ServerPlayerEntity player) {
@@ -124,6 +131,13 @@ public final class BuildService {
             preview.world()!=player.getServerWorld() ||
             !player.isCreative()) {
             tell(player,"Подтвердить может только автор в том же творческом мире.");
+            return;
+        }
+        if(!preview.quality().canBuild()){
+            tell(player,"Строительство заблокировано. Причины:");
+            for(String blocker:preview.quality().blockers())
+                tell(player,"§c"+blocker);
+            tell(player,"Нажми /ai discard, затем составь новый чертёж.");
             return;
         }
         pendingPreview=null;
