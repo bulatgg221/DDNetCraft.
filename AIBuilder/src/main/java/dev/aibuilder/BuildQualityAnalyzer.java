@@ -22,7 +22,9 @@ public final class BuildQualityAnalyzer {
 
     public record Assessment(int width,int height,int depth,int blocks,
                              int materialCount,int rooms,int towers,
-                             List<String> dominantMaterials,List<String> warnings) {
+                             List<String> dominantMaterials,List<String> warnings,
+                             List<String> blockers) {
+        public boolean canBuild() { return blockers.isEmpty(); }
         public String dimensions(){return width+"×"+height+"×"+depth;}
         public String summary(){
             return dimensions()+", "+blocks+" блоков, "+materialCount
@@ -110,6 +112,24 @@ public final class BuildQualityAnalyzer {
             warnings.addAll(WalkabilityAudit.inspectCompiled(
                 architecture.regions(),plan,origin));
 
+        // Unlike informational warnings, these structural defects block the
+        // confirmation button for explicitly castle-themed user requests.
+        // All calculations are performed on actual final voxels, not metadata
+        // alone, and never issue another billable Polza/OpenAI request.
+        Map<WalkabilityAudit.Cell,String> localVoxels=new HashMap<>();
+        if(CastleStructureAudit.isCastle(prompt)) {
+            for(var e:positions.entrySet()) {
+                BlockPos p=e.getKey();
+                localVoxels.put(new WalkabilityAudit.Cell(
+                    p.getX()-origin.getX(),
+                    p.getY()-origin.getY(),
+                    p.getZ()-origin.getZ()),e.getValue());
+            }
+        }
+        CastleStructureAudit.Findings integrity=CastleStructureAudit.inspect(
+            prompt,architecture.regions(),localVoxels);
+        warnings.addAll(integrity.warnings());
+
         // Metadata doesn't prove that a room physically exists. Evaluate
         // that at least one occupied voxel lies inside each declared region.
         for(ArchitectureSpec.Region r:architecture.regions()){
@@ -130,6 +150,7 @@ public final class BuildQualityAnalyzer {
             .limit(5).map(e->e.getKey()+" ("+e.getValue()+")").toList();
         return new Assessment(width,height,depth,plan.blocks().size(),
             count.size(),architecture.regions().size(),
-            architecture.declaredTowers(),popular,List.copyOf(warnings));
+            architecture.declaredTowers(),popular,List.copyOf(warnings),
+            integrity.blockers());
     }
 }
