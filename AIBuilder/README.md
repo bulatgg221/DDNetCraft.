@@ -1,4 +1,30 @@
-# AI Builder 0.9.0 — verified Minecraft 1.21.1 material catalog
+# AI Builder 0.9.1 — verified Minecraft 1.21.1 material catalog
+
+## 0.9.1 — raise original AI blueprint limit safely
+
+Freeform GPT outputs for castles often exceed 100 independent geometric
+operations, and v0.9.0 would reject the entire coherent plan.
+The parser, compiler, and new-install configuration now allow **400**
+independent original operations by default, with an absolute **512**
+operation safety ceiling.
+
+**Existing user config migration:** a stored `maxOperations: 100` from
+earlier default config files is automatically upgraded to `400` and
+persisted once, preserving model, API provider and key files.
+Previously customized limits other than 100 are retained. Users may
+set `maxOperations` from 1 to 512 in `config/aibuilder/config.json`
+after upgrade.
+
+This change does not raise `maxBlocks` (30,000 by default), terrain
+boundary limits or world height limits. A new attempted-placement budget
+also protects the singleplayer integrated server from excessive repeated
+overlap calculations. F7 still builds genuine AI-designed coordinates;
+offline prefabs remain separate.
+
+Tests cover JSON plans with 101, 120, 121, 175, 250, 400 and 512
+operations; a 513-operation response is still rejected. The read-only
+`/ai selftest` command now also compiles a 400-operation design in-game.
+
 
 ## Version 0.9.0 — systematic model-output error audit
 
