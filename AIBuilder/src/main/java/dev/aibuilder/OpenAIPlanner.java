@@ -130,6 +130,13 @@ public final class OpenAIPlanner {
         gable_fill: triangular wall under pitched roof, width w along X, depth d<=3.
         gable_roof: sloping roof made from full blocks, footprint w*d.
         arch: two pillars and top crossbeam, w>=3,h>=3,depth d.
+          Use exactly "type":"arch" for every arch, even when the
+          user asks for multiple arches. Each arch requires its OWN operation
+          with x,y,z,w,h,d and a real block. Example:
+          {"type":"arch","stage":"walls","block":"stone_bricks",
+           "x":9,"y":1,"z":6,"w":5,"h":6,"d":1}.
+          NEVER set "type":"arches" or "type":"archway" in model output.
+          The engine can normalize some aliases, but use canonical types.
         line: x,y,z to x2,y2,z2, straight line of material.
         block: place precisely ONE material, with optional state hints.
         door: place REAL two-block door with facing north/south/east/west,
