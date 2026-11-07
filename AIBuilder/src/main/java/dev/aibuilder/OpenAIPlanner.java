@@ -111,6 +111,18 @@ public final class OpenAIPlanner {
           Set block to actual *_stairs such as oak_stairs or spruce_stairs.
           Do NOT add block-state properties to plain plank or stone blocks.
         tree: log trunk of height h and leaves canopy radius r at x,y,z.
+        pixel_art: ORIGINAL full-color vertical picture. Model authors a row-by-row
+          block-color matrix rather than several massive rectangles. Use palette
+          symbol => valid Minecraft full block, rows = TOP-to-BOTTOM array of
+          equal-width strings. A symbol is ONE ASCII letter or digit.
+          "." means transparent/unbuilt cell. All symbols must be in palette.
+          x/y/z is the lower-left corner of the picture as seen from its front.
+          facing north/south/east/west chooses the picture's outward front.
+          Default north: the portrait faces the player who stands at negative Z.
+          For north-facing art, the image expands toward negative X from x.
+          One pixel places ONE full block. Do NOT use glass panes, stairs,
+          doors or furniture as individual picture pixels; use concrete,
+          wool, terracotta and other full-color full-size blocks instead.
 
         VALID STAGES (these determine overlap priority independently of JSON order):
         foundation (0), walls (1), roof (2), openings (3), details (4),
@@ -155,6 +167,58 @@ public final class OpenAIPlanner {
         Output strict well-formed JSON with all braces and brackets closed.
         Avoid trailing commas, markdown fences and comments.
         """.replace("{{MATERIAL_PALETTE}}", MaterialCatalog.promptList());
+
+    /**
+     * Added ONLY when text requests a picture/portrait. Portraits and buildings
+     * are different design tasks: the model composes original pixels in this
+     * mode rather than filling rectangles in the standard building mode.
+     */
+    private static final String ARTWORK_INSTRUCTIONS = """
+        SPECIAL ARTWORK MODE — USER REQUESTS A DRAWING, PIXEL ART OR PORTRAIT.
+        IGNORE the usual architecture-first style. DO NOT build a box-shaped
+        face, giant white rectangle, cartoon eyes made of 2 blocks, or a
+        blank wall with 4 crude shapes! The screenshot-quality problem to
+        avoid is a flat crude face formed from 5 enormous colored regions.
+        Instead generate a NEW original COLOR-MATRIX pixel portrait.
+
+        Return strict compact JSON:
+        {"name":"Original portrait","operations":[
+         {"type":"pixel_art","stage":"details","x":32,"y":0,"z":8,
+          "facing":"north",
+          "palette":{"A":"black_concrete","B":"brown_terracotta",
+                     "C":"orange_terracotta","D":"white_concrete"},
+          "rows":[ ... ORIGINAL full-length color strings ... ]}
+        ]}
+        The example palette is ONLY an illustration of the JSON FORMAT.
+        Do not reuse it as a fixed face or limit yourself to four colors.
+        You must INVENT EACH ROW and EACH COLOR from the requested subject.
+
+        For a human portrait: draw at 32x32 pixels (32 rows, exactly 32
+        characters in EVERY row); use 12–20 distinct colors/tones, of which
+        at least 9 are actually USED in the rows. Keep picture height <=32
+        relative to user's feet: base y=0 and top y=31 within server limits.
+        Facing north, x=32 starts the left edge as viewed from in front,
+        extending toward world x=1. z=8 places picture in front of player.
+        Draw a recognizable BUST PORTRAIT — hairstyle, head silhouette,
+        ears, nose with shadows, eyes with brows and highlights, mouth,
+        cheeks, chin, neck, shoulder contours and clothing. Background
+        should contrast clearly with hair and clothes. Use warm skin tones
+        via terracotta shades and graded lighting, not huge featureless white.
+        Face proportions should be anatomically sensible. Subtle
+        asymmetry, shading and highlights are better than flat rectangles.
+        Do not put eyes at arbitrary positions outside the head.
+        Use the whole 32x32 grid as a painting; no schematic placeholders.
+
+        The actual engine translates each symbol to one full Minecraft
+        block. The engine does NOT invent, beautify or fill any pixel
+        not specified in rows. No predefined face is available.
+        Do not call house/castle presets and do not combine a crude
+        box silhouette with a tiny decorative canvas.
+
+        For non-human drawings, use an appropriately sized original
+        pixel_art matrix (up to 32x32 recommended) and create the requested
+        subject. Return a complete JSON response, no markdown.
+        """;
 
     private OpenAIPlanner() {}
 
@@ -208,7 +272,15 @@ public final class OpenAIPlanner {
         JsonArray messages = new JsonArray();
         JsonObject sys = new JsonObject();
         sys.addProperty("role", "system");
-        sys.addProperty("content", SYSTEM + (retry ? "\\n" + RETRY_INSTRUCTIONS : ""));
+        String tailored = ArtworkMode.isArtwork(prompt) ? ARTWORK_INSTRUCTIONS : "";
+        String retryGuidance = retry
+            ? (ArtworkMode.isArtwork(prompt)
+                ? "\\nCorrect the previous pixel_art canvas. Use complete 32x32 "
+                    + "rows with 12-20 real Minecraft block color shades and "
+                    + "anatomically recognizable details; do not draw crude rectangles."
+                : "\\n" + RETRY_INSTRUCTIONS)
+            : "";
+        sys.addProperty("content", SYSTEM + "\\n" + tailored + retryGuidance);
         JsonObject user = new JsonObject();
         user.addProperty("role", "user");
         user.addProperty("content", prompt);
@@ -278,9 +350,12 @@ public final class OpenAIPlanner {
         String result = message.get("content").getAsString();
         try {
             String normalized = PlanResponseParser.normalize(result);
-            return GeneratedPlanGuard.requireOriginalGeometry(normalized);
+            GeneratedPlanGuard.requireOriginalGeometry(normalized);
+            return ArtworkMode.requireArtworkGeometry(prompt,normalized,
+                MaterialCatalog.allowedIds());
         } catch (RuntimeException parse) {
-            throw new InvalidPlanJson("ИИ прислал повреждённый JSON или готовый шаблон вместо новых координат.");
+            throw new InvalidPlanJson("Чертёж ИИ не прошёл проверку: "
+                + (parse.getMessage()==null?"некорректный JSON/рисунок":parse.getMessage()));
         }
     }
 
