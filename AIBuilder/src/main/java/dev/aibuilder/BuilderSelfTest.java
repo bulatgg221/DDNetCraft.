@@ -156,7 +156,12 @@ public final class BuilderSelfTest {
             StringBuilder pixels=new StringBuilder();
             for(int col=0;col<32;col++)
                 pixels.append((char)('A'+(col/2+row/3)%colors.length));
-            artRows.add(pixels.toString());
+            String line=pixels.toString();
+            // Deliberately emulate a real GPT-4.1 error: 31 and 33 pixels.
+            // Runtime selftest must still compile a full 32x32 picture.
+            if(row==5)line=line.substring(0,31);
+            if(row==19)line=line+"A";
+            artRows.add(line);
         }
         art.add("rows",artRows);
         list.add(new Scenario("32x32 original-color-grid renderer",art,1024));
