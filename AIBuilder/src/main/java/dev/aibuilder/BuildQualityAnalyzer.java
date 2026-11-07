@@ -129,6 +129,12 @@ public final class BuildQualityAnalyzer {
         CastleStructureAudit.Findings integrity=CastleStructureAudit.inspect(
             prompt,architecture.regions(),localVoxels);
         warnings.addAll(integrity.warnings());
+        List<String> blockers=new ArrayList<>(integrity.blockers());
+        if(CastleStructureAudit.isCastle(prompt) && plan.adjustedOperations()>0)
+            blockers.add("Движок уменьшил размеры "+
+                plan.adjustedOperations()+" операций. Это может обрезать "
+                +"крыши, башни и арки; такой замок нельзя строить без нового "
+                +"целостного чертежа.");
 
         // Metadata doesn't prove that a room physically exists. Evaluate
         // that at least one occupied voxel lies inside each declared region.
@@ -151,6 +157,6 @@ public final class BuildQualityAnalyzer {
         return new Assessment(width,height,depth,plan.blocks().size(),
             count.size(),architecture.regions().size(),
             architecture.declaredTowers(),popular,List.copyOf(warnings),
-            integrity.blockers());
+            List.copyOf(blockers));
     }
 }
