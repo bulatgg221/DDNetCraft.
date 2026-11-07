@@ -96,9 +96,8 @@ public final class PixelArtLayout {
             String material=MaterialAliases.resolve(e.getAsString(),allowed);
             palette.put(key.charAt(0), fullPixelBlock(material,allowed));
         }
-        int[] counts=new int[128];
+        Map<String,Integer> counts=new java.util.HashMap<>();
         int painted=0,transitions=0;
-        java.util.HashSet<Character> used=new java.util.HashSet<>();
         for(int row=0;row<height;row++){
             String line=rows.get(row);
             for(int col=0;col<width;col++){
@@ -106,22 +105,30 @@ public final class PixelArtLayout {
                 if(symbol!='.' && !palette.containsKey(symbol))
                     throw new IllegalArgumentException(
                         "pixel_art: символ '"+symbol+"' отсутствует в palette.");
-                if(symbol!='.'){
+                String current=symbol=='.'?null:palette.get(symbol);
+                if(current!=null){
                     painted++;
-                    used.add(symbol);
-                    counts[symbol]++;
+                    counts.merge(current,1,Integer::sum);
                 }
-                if(col>0 && line.charAt(col-1)!=symbol)transitions++;
-                if(row>0 && rows.get(row-1).charAt(col)!=symbol)transitions++;
+                if(col>0){
+                    char previousSymbol=line.charAt(col-1);
+                    String previous=previousSymbol=='.'?null:palette.get(previousSymbol);
+                    if(!java.util.Objects.equals(previous,current))transitions++;
+                }
+                if(row>0){
+                    char previousSymbol=rows.get(row-1).charAt(col);
+                    String previous=previousSymbol=='.'?null:palette.get(previousSymbol);
+                    if(!java.util.Objects.equals(previous,current))transitions++;
+                }
             }
         }
         if(painted==0)throw new IllegalArgumentException("pixel_art: пустое изображение.");
         int max=0;
-        for(int count:counts)max=Math.max(max,count);
+        for(int count:counts.values())max=Math.max(max,count);
         String facing=FacingHints.horizontal(op.has("facing")
             ?op.get("facing").getAsString():"north");
         return new Canvas(width,height,facing,Collections.unmodifiableMap(palette),
-            List.copyOf(rows),painted,used.size(),transitions,max);
+            List.copyOf(rows),painted,counts.size(),transitions,max);
     }
 
     /**
