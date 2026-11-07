@@ -69,7 +69,8 @@ public final class AIBuilderMod implements ModInitializer {
                     BuildService.tell(player, "/ai demo — спавн; /ai house <style> — 7 стилей домов; /ai castle — крепость без API.");
                     BuildService.tell(player, "/ai version — какая версия мода действительно запущена.");
                     BuildService.tell(player, "/ai selftest — проверить палитру и операции без постройки и API.");
-                    BuildService.tell(player, "/ai undo, /ai cancel, /ai status, /ai setup, /ai reload");
+                    BuildService.tell(player, "/ai confirm или /ai discard — решение по предпросмотру ДО стройки.");
+                    BuildService.tell(player, "/ai undo, /ai redo, /ai cancel, /ai preview, /ai status, /ai setup, /ai reload");
                     BuildService.tell(player, "/ai prompt или F7 — окно подробного промпта до 12000 символов.");
                     BuildService.tell(player, "/ai key или F8 — выбор Polza AI, модели и ввод ключа.");
                     return 1;
@@ -109,6 +110,18 @@ public final class AIBuilderMod implements ModInitializer {
                 }))
                 .then(CommandManager.literal("undo").executes(ctx -> {
                     BuildService.INSTANCE.undo(ctx.getSource().getPlayerOrThrow()); return 1;
+                }))
+                .then(CommandManager.literal("redo").executes(ctx -> {
+                    BuildService.INSTANCE.redo(ctx.getSource().getPlayerOrThrow()); return 1;
+                }))
+                .then(CommandManager.literal("confirm").executes(ctx -> {
+                    BuildService.INSTANCE.confirm(ctx.getSource().getPlayerOrThrow()); return 1;
+                }))
+                .then(CommandManager.literal("discard").executes(ctx -> {
+                    BuildService.INSTANCE.discard(ctx.getSource().getPlayerOrThrow()); return 1;
+                }))
+                .then(CommandManager.literal("preview").executes(ctx -> {
+                    BuildService.INSTANCE.status(ctx.getSource().getPlayerOrThrow()); return 1;
                 }))
                 .then(CommandManager.literal("reload").executes(ctx -> {
                     config = BuilderConfig.load();
@@ -247,7 +260,8 @@ public final class AIBuilderMod implements ModInitializer {
                         if (ticket < 0) { BuildService.tell(player, "Другая постройка ещё обрабатывается."); return 0; }
                         BlockPos anchor = player.getBlockPos().toImmutable();
                         var worldKey = player.getWorld().getRegistryKey();
-                        BuildService.tell(player, "ИИ создаёт оригинальный чертёж с координатами… /ai status для проверки; /ai cancel для отмены.");
+                        BuildService.tell(player, "ИИ проектирует оригинальный чертёж… "
+                            + "Сначала будет предпросмотр, без изменения мира. /ai cancel для отмены.");
                         BuilderConfig snapshot = config;
                         final String designBrief = prompt;
                         OpenAIPlanner.plan(prompt, snapshot).whenComplete((json, error) -> server.execute(() -> {
@@ -292,7 +306,9 @@ public final class AIBuilderMod implements ModInitializer {
                                     + plan.operations() + " операций, "
                                     + plan.blocks().size() + " блоков. "
                                     + "План сохранён в config/aibuilder/last-generated-plan.json.");
-                                service.schedule(server, current, plan);
+                                BuildQualityAnalyzer.Assessment quality=
+                                    BuildQualityAnalyzer.inspect(designBrief,json,plan);
+                                service.offerPreview(current,plan,quality);
                             } catch (Exception ex) {
                                 BuildService.tell(current, "План отклонён: " + shortMessage(ex));
                                 BuildService.tell(current, "Попробуй более конкретный или небольшой проект.");
