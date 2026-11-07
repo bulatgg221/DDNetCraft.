@@ -104,10 +104,22 @@ public final class WalkabilityAudit {
             for(int dx=-2;dx<=2;dx++)
                 for(int dz=-2;dz<=2;dz++){
                     if(Math.abs(dx)+Math.abs(dz)>2)continue;
+                    // Diagonal-only adjacency is not a doorway.
+                    if(Math.abs(dx)==1 && Math.abs(dz)==1)continue;
                     for(int dy=-1;dy<=1;dy++){
                         Cell adjacent=new Cell(
                             cell.x()+dx,cell.y()+dy,cell.z()+dz);
                         if(!large.contains(adjacent))continue;
+                        if(dy!=0){
+                            // One-level transition requires a staircase or
+                            // ladder near the transition, not a floating jump.
+                            String from=voxels.get(new Cell(
+                                cell.x(),cell.y()-1,cell.z()));
+                            String to=voxels.get(new Cell(
+                                adjacent.x(),adjacent.y()-1,adjacent.z()));
+                            if(!isVerticalConnector(from) && !isVerticalConnector(to))
+                                continue;
+                        }
                         if(Math.abs(dx)+Math.abs(dz)<=1)
                             return true;
                         // A 1-cell gap is acceptable only if an actual
@@ -124,6 +136,11 @@ public final class WalkabilityAudit {
                 }
         }
         return false;
+    }
+
+    private static boolean isVerticalConnector(String id){
+        return id!=null && (id.endsWith("_stairs") ||
+            id.equals("ladder") || id.equals("scaffolding"));
     }
 
     private static boolean isSupport(String id){
