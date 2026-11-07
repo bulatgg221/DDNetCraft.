@@ -18,7 +18,8 @@ import java.util.UUID;
  */
 public final class PreviewScreen extends Screen {
     public record Data(String name,String size,int blocks,int operations,
-                       List<String> warnings,List<String> materials) {}
+                       List<String> warnings,List<String> materials,
+                       List<String> blockers) {}
     private final Data preview;
 
     public PreviewScreen(Data preview) {
@@ -31,9 +32,13 @@ public final class PreviewScreen extends Screen {
         int panelWidth=Math.min(500,width-32);
         int left=(width-panelWidth)/2;
         int bottom=Math.max(95,height-58);
-        this.addDrawableChild(ButtonWidget.builder(
-            Text.literal("Подтвердить строительство"),button->finish(true))
-            .dimensions(left,bottom,(panelWidth-12)/2,22).build());
+        ButtonWidget confirm=ButtonWidget.builder(
+            Text.literal(preview.blockers().isEmpty()
+                ?"Подтвердить строительство":"Строительство запрещено"),
+            button->finish(true))
+            .dimensions(left,bottom,(panelWidth-12)/2,22).build();
+        confirm.active=preview.blockers().isEmpty();
+        this.addDrawableChild(confirm);
         this.addDrawableChild(ButtonWidget.builder(
             Text.literal("Отменить без строительства"),button->finish(false))
             .dimensions(left+(panelWidth+12)/2,bottom,(panelWidth-12)/2,22).build());
@@ -79,12 +84,28 @@ public final class PreviewScreen extends Screen {
         draw.drawCenteredTextWithShadow(textRenderer,
             Text.literal("Материалы: "+String.join(", ",preview.materials())),
             mid,y,0xB9B9B9);
-        y+=22;
-        if(preview.warnings().isEmpty()){
+        y+=18;
+        if(!preview.blockers().isEmpty()){
+            draw.drawCenteredTextWithShadow(textRenderer,
+                Text.literal("ПОСТРОЙКА ЗАБЛОКИРОВАНА: "+
+                    preview.blockers().size()+" критических ошибок"),
+                mid,y,0xFF7777);
+            y+=16;
+            for(String reason:preview.blockers()){
+                if(y>height-120)break;
+                String shortReason=reason.length()>92
+                    ?reason.substring(0,89)+"...":reason;
+                draw.drawCenteredTextWithShadow(textRenderer,
+                    Text.literal("! "+shortReason),mid,y,0xFF9999);
+                y+=13;
+            }
+            y+=8;
+        }
+        if(preview.warnings().isEmpty()&&preview.blockers().isEmpty()){
             draw.drawCenteredTextWithShadow(textRenderer,
                 Text.literal("Грубых проблем не обнаружено (это не визуальная проверка)."),
                 mid,y,0xB7EAB9);
-        }else{
+        }else if(!preview.warnings().isEmpty()){
             draw.drawCenteredTextWithShadow(textRenderer,
                 Text.literal("Предупреждения анализа: "+preview.warnings().size()),
                 mid,y,0xF4D18B);
@@ -99,7 +120,9 @@ public final class PreviewScreen extends Screen {
             }
         }
         draw.drawCenteredTextWithShadow(textRenderer,
-            Text.literal("Мир пока НЕ изменён. Esc = отмена."),
+            Text.literal(preview.blockers().isEmpty()
+                ?"Мир пока НЕ изменён. Esc = отмена."
+                :"Мир НЕ изменён. Нажми «Отменить», затем исправь проект."),
             mid,height-72,0xB9D4F8);
     }
 }
