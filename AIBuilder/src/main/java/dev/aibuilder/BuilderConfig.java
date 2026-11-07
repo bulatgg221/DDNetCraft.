@@ -24,6 +24,12 @@ public final class BuilderConfig {
     public String model = "openai/gpt-5.4-mini";
     /** One extra billable API request if a model returns invalid or truncated JSON. */
     public boolean retryMalformedJson = true;
+    /**
+     * Artwork retries can double Polza/OpenAI cost and often reproduce the
+     * same defective rows. Keep them OFF by default; local repairs are free.
+     * Explicitly set retryArtwork=true in config.json to opt in.
+     */
+    public boolean retryArtwork = false;
     public int blocksPerTick = 300;
     public int maxBlocks = 30000;
     public int maxOperations = BuildLimits.DEFAULT_OPERATIONS;
