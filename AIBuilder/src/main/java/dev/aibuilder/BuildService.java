@@ -109,6 +109,10 @@ public final class BuildService {
         if(quality.warnings().size()>5)
             tell(player,"И ещё "+(quality.warnings().size()-5)+" предупреждений.");
         tell(player,"Мир НЕ изменён. /ai confirm — построить, /ai discard — отказаться.");
+        dev.aibuilder.client.AIBuilderClient.requestPreviewOpen(
+            new dev.aibuilder.client.PreviewScreen.Data(
+                plan.name(),quality.dimensions(),quality.blocks(),plan.operations(),
+                quality.warnings(),quality.dominantMaterials()));
     }
 
     public void confirm(ServerPlayerEntity player) {
