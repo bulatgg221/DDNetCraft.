@@ -65,6 +65,11 @@ public final class StageOperationRepair {
                 throw failure(type,"поле "+hint+" должно содержать имя геометрической операции.");
             String candidate=field.getAsString().strip();
             if(candidate.isEmpty())continue;
+            // shape=straight/inner_left/etc describes the *block state* of
+            // Minecraft stairs, not an operation type.
+            if(hint.equals("shape") && Set.of("straight","inner_left",
+                "inner_right","outer_left","outer_right")
+                .contains(candidate.toLowerCase(Locale.ROOT)))continue;
             OperationTypes.Resolved resolved=OperationTypes.resolve(candidate,material,allowed);
             String inferred=resolved.type();
             if(GeneratedPlanGuard.usesPrebuilt(inferred))
@@ -108,6 +113,11 @@ public final class StageOperationRepair {
             // clearly thin 2D decorative plane / 1D beam is described.
             // A 15x15x15 mass might be a cylinder, tower, hollow box etc.
             int w=dimension(op,"w"),h=dimension(op,"h"),d=dimension(op,"d");
+            if((material.endsWith("_door")||material.endsWith("_bed"))
+                && (w>1||h>1||d>1))
+                throw failure(stage,"многочастный блок "+material+
+                    " нельзя разворачивать в прямоугольник; "
+                    +"используй shape=door/bed и одну начальную координату.");
             if(w==1&&h==1&&d==1)
                 return material.endsWith("_door")||material.endsWith("_bed")
                     ?OperationTypes.resolve("block",material,MaterialCatalog.allowedIds()).type()
