@@ -49,9 +49,12 @@ public final class BuildQualityAnalyzer {
         }
         int width=maxX-minX+1,height=maxY-minY+1,depth=maxZ-minZ+1;
         ArchitectureSpec.Parsed architecture=ArchitectureSpec.inspect(json);
-        List<String> warnings=new ArrayList<>(architecture.warnings());
         String query=prompt==null?"":prompt.toLowerCase(Locale.ROOT);
         boolean picture=ArtworkMode.isArtwork(query);
+        // Portraits/images have no rooms, and must not be criticized for
+        // omitting architectural region metadata.
+        List<String> warnings=new ArrayList<>(
+            picture?List.of():architecture.warnings());
         int effectiveBlocks=(int)count.entrySet().stream()
             .filter(e->!e.getKey().equals("air")).mapToLong(Map.Entry::getValue).sum();
         if(!picture){
