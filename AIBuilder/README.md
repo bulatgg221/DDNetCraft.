@@ -1,3 +1,13 @@
+# AI Builder V2 0.11.0-alpha.1 — original AI architecture and preview
+
+**Experimental branch**: This is a working development milestone, NOT a fully
+completed implementation of the full product specification.
+See [the V2 implementation guide](V2_README_RU.md) (Russian) for actual
+features, installation, PNG import, build confirmation and known limitations.
+
+The previous release notes below describe the earlier stable 0.10.1 prototype,
+retained for comparison.
+
 # AI Builder 0.10.1 — freeform buildings and pixel art
 
 ## 0.10.1 — offline repair for AI-generated image row discrepancies
