@@ -136,6 +136,30 @@ public final class BuilderSelfTest {
         list.add(s("archway","arch","stone_bricks",13,5,5,1));
         list.add(s("gable facade","gable_fill","stone_bricks",16,7,1,1));
         list.add(s("small sandstone sphere","sphere","sandstone",33,1,1,1));
+        // A synthetic 32x32 color matrix tests all 1024 pixel placements.
+        // It is for geometry QA only: NOT a fixed face or generated design.
+        JsonObject art=new JsonObject();
+        art.addProperty("type","pixel_art");
+        art.addProperty("stage","details");
+        art.addProperty("x",32);art.addProperty("y",0);art.addProperty("z",8);
+        art.addProperty("facing","north");
+        JsonObject artPalette=new JsonObject();
+        String[] colors={"black_concrete","gray_concrete","light_gray_concrete",
+            "white_concrete","brown_terracotta","orange_terracotta",
+            "red_terracotta","yellow_terracotta","pink_concrete",
+            "blue_concrete","cyan_concrete","purple_concrete"};
+        for(int i=0;i<colors.length;i++)
+            artPalette.addProperty(""+(char)('A'+i),colors[i]);
+        art.add("palette",artPalette);
+        JsonArray artRows=new JsonArray();
+        for(int row=0;row<32;row++){
+            StringBuilder pixels=new StringBuilder();
+            for(int col=0;col<32;col++)
+                pixels.append((char)('A'+(col/2+row/3)%colors.length));
+            artRows.add(pixels.toString());
+        }
+        art.add("rows",artRows);
+        list.add(new Scenario("32x32 original-color-grid renderer",art,1024));
         return list;
     }
 
