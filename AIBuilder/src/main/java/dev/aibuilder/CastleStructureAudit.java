@@ -78,6 +78,9 @@ public final class CastleStructureAudit {
                         +"а не одиночная дверь сбоку.");
             }
         }
+        String blankFacade=largeBlankStoneFacade(blocks);
+        if(blankFacade!=null)warnings.add(blankFacade);
+
         if((prompt.toLowerCase(Locale.ROOT).contains("дворец")
             ||prompt.toLowerCase(Locale.ROOT).contains("palace")
             ||prompt.toLowerCase(Locale.ROOT).contains("central keep"))
@@ -86,6 +89,63 @@ public final class CastleStructureAudit {
                 +"но в architecture.regions нет соответствующей зоны.");
 
         return new Findings(List.copyOf(blockers),List.copyOf(warnings));
+    }
+
+    /**
+     * Detect genuinely large uninterrupted stone planes, not just a castle
+     * made of stone. This is a warning: a fortress wall may be intentional.
+     */
+    private static String largeBlankStoneFacade(Map<WalkabilityAudit.Cell,String> blocks) {
+        Map<Integer,Plane> alongX=new java.util.HashMap<>();
+        Map<Integer,Plane> alongZ=new java.util.HashMap<>();
+        for(var entry:blocks.entrySet()) {
+            String id=entry.getValue();
+            if(id==null)continue;
+            var p=entry.getKey();
+            boolean masonry=isMasonry(id);
+            boolean window=id.contains("glass")||id.contains("_pane");
+            if(!masonry&&!window)continue;
+            alongZ.computeIfAbsent(p.z(),unused->new Plane())
+                .add(p.x(),p.y(),masonry,window);
+            alongX.computeIfAbsent(p.x(),unused->new Plane())
+                .add(p.z(),p.y(),masonry,window);
+        }
+        for(Plane plane:alongZ.values())
+            if(plane.isTooBlank())
+                return "Обнаружена огромная почти сплошная каменная стена "+
+                    plane.width()+"×"+plane.height()+". Нужны проёмы, "
+                    +"контрфорсы и рельеф, иначе получится плоская коробка.";
+        for(Plane plane:alongX.values())
+            if(plane.isTooBlank())
+                return "Обнаружена огромная глухая боковая стена "+
+                    plane.width()+"×"+plane.height()+". Проверь окна и архитектурный рельеф.";
+        return null;
+    }
+
+    private static boolean isMasonry(String id) {
+        return id.contains("stone")||id.contains("brick")||
+            id.contains("deepslate")||id.contains("tuff")||
+            id.contains("sandstone")||id.equals("andesite")||
+            id.equals("diorite")||id.equals("granite");
+    }
+
+    private static final class Plane {
+        int lo=Integer.MAX_VALUE, hi=Integer.MIN_VALUE;
+        int bottom=Integer.MAX_VALUE, top=Integer.MIN_VALUE;
+        int masonry, glass;
+        void add(int horizontal,int y,boolean stone,boolean window){
+            lo=Math.min(lo,horizontal);hi=Math.max(hi,horizontal);
+            bottom=Math.min(bottom,y);top=Math.max(top,y);
+            if(stone)masonry++;
+            if(window)glass++;
+        }
+        int width(){return hi-lo+1;}
+        int height(){return top-bottom+1;}
+        boolean isTooBlank(){
+            long area=(long)width()*height();
+            return width()>=14 && height()>=8 && area>=120
+                && masonry*100L>=area*85L && glass<6;
+        }
     }
 
     private static boolean tower(ArchitectureSpec.Region r) {
