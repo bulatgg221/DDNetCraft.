@@ -63,6 +63,9 @@ public final class PlanCompiler {
             operationIndex++;
             if (!entry.isJsonObject()) throw new IllegalArgumentException("Каждая операция должна быть объектом.");
             JsonObject op = entry.getAsJsonObject();
+            // Apply the same non-destructive normalization for plans loaded
+            // from disk, including older LLM JSON bypassing the API parser.
+            StageOperationRepair.normalize(op,MATERIALS);
             OperationTypes.Resolved resolved = OperationTypes.resolve(
                 string(op,"type","box"), string(op,"block",null), MATERIALS);
             String type = resolved.type();
