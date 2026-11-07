@@ -28,6 +28,8 @@ public final class BuildService {
         final ArrayDeque<PlanCompiler.Placement> queue;
         final List<Change> changes = new ArrayList<>();
         final Deque<Change> undo;
+        final Deque<Change> redo;
+        final List<Change> successfullyUndone = new ArrayList<>();
         final int total;
         int done, skipped;
 
@@ -38,6 +40,7 @@ public final class BuildService {
             this.queue = new ArrayDeque<>(plan.blocks());
             this.total = queue.size();
             this.undo = null;
+            this.redo = null;
         }
         Job(ServerWorld world, UUID owner, Deque<Change> undo) {
             this.world = world;
@@ -45,13 +48,29 @@ public final class BuildService {
             this.name = "Отмена последней постройки";
             this.queue = null;
             this.undo = new ArrayDeque<>(undo);
+            this.redo = null;
             this.total = undo.size();
         }
+        Job(ServerWorld world, UUID owner, List<Change> redo) {
+            this.world=world;
+            this.owner=owner;
+            this.name="Повтор последней постройки";
+            this.queue=null;
+            this.undo=null;
+            this.redo=new ArrayDeque<>(redo);
+            this.total=redo.size();
+        }
         boolean isUndo() { return undo != null; }
+        boolean isRedo() { return redo != null; }
     }
 
+    private record Preview(ServerWorld world,UUID owner,
+                           PlanCompiler.CompiledPlan plan,
+                           BuildQualityAnalyzer.Assessment quality) {}
+    private Preview pendingPreview;
     private Job active;
     private Deque<Change> lastUndo = new ArrayDeque<>();
+    private List<Change> lastRedo = List.of();
     private ServerWorld lastWorld;
     private UUID lastOwner;
     private int token;
@@ -63,7 +82,9 @@ public final class BuildService {
         return this;
     }
 
-    public boolean isBusy() { return planning || active != null; }
+    public boolean isBusy() {
+        return planning || active != null || pendingPreview != null;
+    }
     public int beginPlanning() {
         if (isBusy()) return -1;
         planning = true;
@@ -74,6 +95,59 @@ public final class BuildService {
         if (isPending(ticket)) planning = false;
     }
 
+    /** Display a read-only inspection before ANY block is changed. */
+    public void offerPreview(ServerPlayerEntity player,PlanCompiler.CompiledPlan plan,
+                             BuildQualityAnalyzer.Assessment quality) {
+        if(planning || active!=null || pendingPreview!=null)
+            throw new IllegalStateException("Другая генерация ещё выполняется.");
+        pendingPreview=new Preview(player.getServerWorld(),player.getUuid(),plan,quality);
+        tell(player,"ПРЕДПРОСМОТР «"+plan.name()+"»: "+quality.summary()+".");
+        if(!quality.dominantMaterials().isEmpty())
+            tell(player,"Основные материалы: "+String.join(", ",quality.dominantMaterials())+".");
+        for(int i=0;i<Math.min(5,quality.warnings().size());i++)
+            tell(player,"⚠ "+quality.warnings().get(i));
+        if(quality.warnings().size()>5)
+            tell(player,"И ещё "+(quality.warnings().size()-5)+" предупреждений.");
+        tell(player,"Мир НЕ изменён. /ai confirm — построить, /ai discard — отказаться.");
+    }
+
+    public void confirm(ServerPlayerEntity player) {
+        Preview preview=pendingPreview;
+        if(preview==null){
+            tell(player,"Нет чертежа для подтверждения.");return;
+        }
+        if(!preview.owner().equals(player.getUuid()) ||
+            preview.world()!=player.getServerWorld() ||
+            !player.isCreative()) {
+            tell(player,"Подтвердить может только автор в том же творческом мире.");
+            return;
+        }
+        pendingPreview=null;
+        schedule(player.getServer(),player,preview.plan());
+    }
+
+    public void discard(ServerPlayerEntity player) {
+        if(pendingPreview==null){
+            tell(player,"Нет ожидающего чертежа.");return;
+        }
+        if(!pendingPreview.owner().equals(player.getUuid())){
+            tell(player,"Этот чертёж принадлежит другому игроку.");return;
+        }
+        pendingPreview=null;
+        tell(player,"Чертёж отклонён. В мире ничего не изменено.");
+    }
+
+    public void redo(ServerPlayerEntity player){
+        if(isBusy()){tell(player,"Сначала заверши или отмени текущую работу.");return;}
+        if(lastRedo.isEmpty()||lastWorld!=player.getServerWorld() ||
+            !player.getUuid().equals(lastOwner)){
+            tell(player,"Нет безопасной постройки для повторного применения.");return;
+        }
+        active=new Job(lastWorld,player.getUuid(),lastRedo);
+        lastRedo=List.of();
+        tell(player,"Повторяю последнюю отменённую постройку, без нового API-запроса.");
+    }
+
     public void schedule(MinecraftServer server, ServerPlayerEntity player, PlanCompiler.CompiledPlan plan) {
         if (active != null) throw new IllegalStateException("Уже идёт строительство.");
         if (server.isDedicated()) throw new IllegalArgumentException("Только одиночный мир.");
@@ -81,6 +155,7 @@ public final class BuildService {
         if (plan.blocks().isEmpty()) throw new IllegalArgumentException("Пустой план.");
         active = new Job(player.getServerWorld(), player.getUuid(), plan);
         lastUndo.clear();
+        lastRedo=List.of();
         lastWorld = null;
         lastOwner = null;
         tell(player, "Начинаю «" + plan.name() + "»: " + plan.blocks().size() + " блоков, " +
@@ -93,6 +168,13 @@ public final class BuildService {
     public void cancel(ServerPlayerEntity player) {
         token++;
         planning = false;
+        if (pendingPreview!=null) {
+            if(pendingPreview.owner().equals(player.getUuid())){
+                pendingPreview=null;
+                tell(player,"Ожидающий чертёж отменён без изменения мира.");
+            } else tell(player,"Это не твой чертёж.");
+            return;
+        }
         if (active == null) { tell(player, "Ожидание API отменено; активной стройки нет."); return; }
         if (active.isUndo()) { tell(player, "Откат уже выполняется."); return; }
         if (!active.owner.equals(player.getUuid())) { tell(player, "Стройка запущена другим игроком."); return; }
@@ -110,20 +192,28 @@ public final class BuildService {
         }
         active = new Job(lastWorld, player.getUuid(), lastUndo);
         lastUndo = new ArrayDeque<>();
+        lastRedo=List.of();
         tell(player, "Откатываю последнюю постройку.");
     }
 
     public void status(ServerPlayerEntity player) {
-        if (planning) { tell(player, "Запрашиваю план у OpenAI API… /ai cancel для отмены."); return; }
+        if (planning) { tell(player, "Запрашиваю архитектурный план у API… /ai cancel для отмены."); return; }
+        if(pendingPreview!=null){
+            tell(player,"Чертёж «"+pendingPreview.plan().name()+"» готов: "
+                +pendingPreview.quality().summary()+". /ai confirm или /ai discard.");
+            return;
+        }
         if (active == null) { tell(player, "Сейчас ничего не строится."); return; }
-        tell(player, (active.isUndo() ? "Откат" : "Строительство") + ": " + active.done + "/" + active.total);
+        tell(player, (active.isUndo() ? "Откат" : active.isRedo() ? "Повтор" : "Строительство") + ": " + active.done + "/" + active.total);
     }
 
     public void clear() {
         token++;
         planning = false;
         active = null;
+        pendingPreview=null;
         lastUndo.clear();
+        lastRedo=List.of();
         lastWorld = null;
         lastOwner = null;
     }
@@ -138,10 +228,21 @@ public final class BuildService {
             if (job.isUndo()) {
                 Change change = job.undo.pollFirst();
                 if (change == null) break;
-                if (job.world.getBlockState(change.pos()).equals(change.placed())) {
-                    job.world.setBlockState(change.pos(), change.before(), 3);
-                } else job.skipped++;
+                if (job.world.getBlockState(change.pos()).equals(change.placed())
+                    && job.world.setBlockState(change.pos(), change.before(), 3))
+                    job.successfullyUndone.add(change);
+                else job.skipped++;
                 job.done++; count++;
+            } else if(job.isRedo()){
+                Change change=job.redo.pollFirst();
+                if(change==null)break;
+                // Never overwrite changes the player made after undo.
+                if(job.world.getBlockState(change.pos()).equals(change.before())
+                    && job.world.getBlockEntity(change.pos())==null
+                    && job.world.setBlockState(change.pos(),change.placed(),3))
+                    job.changes.add(change);
+                else job.skipped++;
+                job.done++;count++;
             } else {
                 PlanCompiler.Placement placement = job.queue.pollFirst();
                 if (placement == null) break;
@@ -161,16 +262,21 @@ public final class BuildService {
         if (ticks % 40 == 0) notifyOwner(server, job,
             (job.isUndo() ? "Откат" : "Строительство") + ": " + job.done + "/" + job.total);
         if (job.done >= job.total) {
-            if (!job.isUndo()) {
+            if(job.isUndo()) {
+                List<Change> forward=new ArrayList<>(job.successfullyUndone);
+                java.util.Collections.reverse(forward);
+                lastRedo=List.copyOf(forward);
+            } else {
                 lastUndo.clear();
-                for (Change change : job.changes) lastUndo.push(change);
-                lastOwner = job.owner;
-                lastWorld = job.world;
+                for(Change change:job.changes)lastUndo.push(change);
+                lastOwner=job.owner;
+                lastWorld=job.world;
             }
-            notifyOwner(server, job, (job.isUndo() ? "Откат завершён" : "Построено «" + job.name + "»") +
-                ": " + (job.done-job.skipped) + " блоков, пропущено " + job.skipped + "." +
-                (job.isUndo() ? "" : " /ai undo для отмены."));
-            active = null;
+            notifyOwner(server,job,(job.isUndo()?"Откат завершён"
+                :job.isRedo()?"Повтор завершён":"Построено «"+job.name+"»")
+                +": "+(job.done-job.skipped)+" блоков, пропущено "+job.skipped+"."
+                +(job.isUndo()?" /ai redo для повторения.":" /ai undo для отмены."));
+            active=null;
         }
     }
 
