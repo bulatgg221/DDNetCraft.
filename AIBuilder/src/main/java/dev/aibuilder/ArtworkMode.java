@@ -45,14 +45,21 @@ public final class ArtworkMode {
         JsonArray ops=root.getAsJsonArray("operations");
         if(ops==null)throw new IllegalArgumentException("План рисунка без operations.");
         boolean found=false;
+        boolean portrait=isPortrait(prompt);
         for(JsonElement element:ops){
             if(!element.isJsonObject())continue;
             JsonObject op=element.getAsJsonObject();
             if(!op.has("type")||!op.get("type").isJsonPrimitive())continue;
-            if(!op.get("type").getAsString().equalsIgnoreCase("pixel_art"))continue;
+            boolean pixel=op.get("type").getAsString().equalsIgnoreCase("pixel_art");
+            if(!pixel){
+                if(portrait)throw new IllegalArgumentException(
+                    "Для портрета используй только pixel_art: крупные box и "
+                    + "другие примитивы могут перекрыть готовое изображение.");
+                continue;
+            }
             found=true;
             PixelArtLayout.Canvas canvas=PixelArtLayout.parse(op,allowed);
-            if(isPortrait(prompt))requireDetailedPortrait(canvas);
+            if(portrait)requireDetailedPortrait(canvas);
         }
         if(!found)throw new IllegalArgumentException(
             "Для картины нужен оригинальный pixel_art с матрицей цветов, "
