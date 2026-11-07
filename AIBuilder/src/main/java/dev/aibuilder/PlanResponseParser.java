@@ -35,7 +35,9 @@ public final class PlanResponseParser {
         String json = extractObject(response.strip());
         try {
             return validate(json).toString();
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException ex) {
+            if(ex.getMessage()!=null && ex.getMessage().startsWith("Слишком много операций"))
+                throw ex;
             // Retry with non-destructive, strictly syntactic normalization only.
         }
         String repaired = removeTrailingCommas(json);
@@ -44,6 +46,8 @@ public final class PlanResponseParser {
         try {
             return validate(repaired).toString();
         } catch (RuntimeException ex) {
+            if(ex.getMessage()!=null && ex.getMessage().startsWith("Слишком много операций"))
+                throw ex;
             throw new IllegalArgumentException(
                 "Нейросеть прислала повреждённый JSON-план. Попробуй упростить запрос.");
         }
@@ -54,8 +58,9 @@ public final class PlanResponseParser {
         if (!value.isJsonObject()) throw new IllegalArgumentException("Нужен JSON-объект.");
         JsonObject root = value.getAsJsonObject();
         JsonArray ops = root.getAsJsonArray("operations");
-        if (ops == null || ops.isEmpty() || ops.size() > 120)
+        if (ops == null || ops.isEmpty())
             throw new IllegalArgumentException("Некорректный массив операций.");
+        BuildLimits.requireParsedOperations(ops.size());
         for (JsonElement operation : ops) {
             if (!operation.isJsonObject()) throw new IllegalArgumentException("Операция не является объектом.");
             JsonObject object = operation.getAsJsonObject();
