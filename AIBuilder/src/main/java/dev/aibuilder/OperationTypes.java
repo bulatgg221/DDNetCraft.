@@ -18,6 +18,50 @@ public final class OperationTypes {
         "pyramid", "gable_roof", "gable_fill", "roof_stairs", "hip_roof", "line", "arch", "tree",
         "block", "chair", "door", "bed", "table", "stairs_run", "pixel_art");
 
+    /**
+     * Frequent harmless LLM spelling/plural variants of existing primitives.
+     * These are ONLY type aliases: no template, extra building or material
+     * is injected. Names not listed here still fail closed.
+     *
+     * IMPORTANT: keep descriptive labels like "stairs" separate because
+     * "stairs" already means the run of steps, not one stair block.
+     */
+    private static final Map<String,String> SHAPE_ALIASES = Map.ofEntries(
+        Map.entry("arches","arch"),
+        Map.entry("archs","arch"),
+        Map.entry("archway","arch"),
+        Map.entry("archways","arch"),
+        Map.entry("arched_gateway","arch"),
+        Map.entry("gate_arch","arch"),
+        Map.entry("boxes","box"),
+        Map.entry("rectangles","box"),
+        Map.entry("rectangular_prism","box"),
+        Map.entry("hollow_boxes","hollow_box"),
+        Map.entry("hollow_rectangles","hollow_box"),
+        Map.entry("cylinders","cylinder"),
+        Map.entry("hollow_cylinders","hollow_cylinder"),
+        Map.entry("spheres","sphere"),
+        Map.entry("pyramids","pyramid"),
+        Map.entry("lines","line"),
+        Map.entry("blocks","block"),
+        Map.entry("single_block","block"),
+        Map.entry("single_blocks","block"),
+        Map.entry("doors","door"),
+        Map.entry("beds","bed"),
+        Map.entry("tables","table"),
+        Map.entry("chairs","chair"),
+        Map.entry("trees","tree"),
+        Map.entry("roof_stair","roof_stairs"),
+        Map.entry("hip_roofs","hip_roof"),
+        Map.entry("gable_roofs","gable_roof"),
+        Map.entry("gable_fills","gable_fill"),
+        Map.entry("stair_run","stairs_run"),
+        Map.entry("stair_runs","stairs_run"),
+        Map.entry("staircases_run","stairs_run"),
+        Map.entry("pixel_arts","pixel_art"),
+        Map.entry("pixelart","pixel_art")
+    );
+
     private static final Map<String, Resolved> DESCRIPTIVE = Map.ofEntries(
         // Older model schemas frequently use item labels as operation types.
         Map.entry("flower_pot", new Resolved("block", "flower_pot")),
@@ -49,6 +93,9 @@ public final class OperationTypes {
     public static Resolved resolve(String rawType, String explicitBlock, Set<String> palette) {
         String type = rawType == null ? "" : rawType.trim().toLowerCase(Locale.ROOT)
             .replace(' ', '_').replace('-', '_');
+        // Canonicalize ONLY explicitly reviewed aliases. In particular,
+        // "arches" becomes "arch" with all original x/y/z/w/h/d unchanged.
+        type = SHAPE_ALIASES.getOrDefault(type,type);
         if (NATIVE.contains(type)) {
             // AI frequently uses type=block for functional two-block structures.
             // Route these through correct door/bed placement rather than leaving
