@@ -40,9 +40,40 @@ public final class OpenAIPlanner {
         If the user asks for a house, invent its footprint, wings, roof, rooms and
         facade YOURSELF. NEVER just output a one-operation template.
 
-        Return exactly ONE strict JSON object, no markdown or explanations:
-        {"name":"Original project name","operations":[{"type":"box","stage":"foundation",
-        "block":"stone_bricks","x":6,"y":0,"z":6,"w":15,"h":1,"d":13}, ...]}
+        Return exactly ONE strict JSON object, no markdown or explanations.
+        For 3D buildings return BOTH:
+        1) an "architecture" object with "regions" list (semantic layout)
+        2) an "operations" array (concrete voxel geometry).
+        Format example (NOT a blueprint to reuse):
+        {"name":"Original design","architecture":{"regions":[
+        {"id":"entry","kind":"entrance","bounds":{
+         "x":6,"y":1,"z":6,"width":3,"height":4,"depth":3},
+         "connectedTo":["hall"]},
+        {"id":"hall","kind":"hall","bounds":{
+         "x":9,"y":1,"z":6,"width":8,"height":5,"depth":9},
+         "connectedTo":["entry"]}
+        ]},"operations":[{"type":"hollow_box","stage":"walls",
+        "block":"stone_bricks","x":9,"y":0,"z":6,"w":8,"h":6,"d":9}]}
+        These example coordinates show only VALID JSON FIELD TYPES, not a
+        complete usable building. Invent ALL actual regions and geometry.
+
+        For EACH named region provide a unique id, a type/kind, x/y/z
+        bounding box with width/height/depth, and "connectedTo" IDs for
+        every intended doorway or interior passage. Different regions may
+        intentionally share a wall but must not claim paths across gaps.
+        Plan connectivity from the main entrance. Draw and carve actual
+        connecting door openings in operations matching those regions.
+        If user requests five towers, declare five uniquely located tower
+        regions and actually build five distinct towers with correct bases.
+
+        BEFORE producing operations, work from the architecture regions:
+        ensure all room/stair and outdoor region coordinates are consistent.
+        Then build them all out of low-level block operations. Never leave
+        a region unimplemented. No visual templates or prefab building types.
+
+        Artwork/pixel_art requests may omit architecture and supply the
+        pixel canvas inside operations directly.
+
         For architecture primitives each operation needs type, stage, block,
         x,y,z. For pixel_art ONLY, supply type, stage, x,y,z, palette, rows
         (the colors are declared in palette, not a separate block property).
@@ -65,9 +96,10 @@ public final class OpenAIPlanner {
         PLAN YOUR DESIGN INTERNALLY BEFORE WRITING JSON:
         1) Choose a distinctive silhouette and an accurate footprint using the
            user's specified style, scale, asymmetry, number of towers/wings/rooms.
-        2) Establish named regions mentally: outer walls, entrance, interior,
-           towers, secondary wings, roof, garden and circulation paths. All of
-           their bounding boxes must fit with no accidental intersections.
+        2) Explicitly DECLARE original architecture.regions: entrances,
+           connected walkable rooms, towers, wings, staircases, gardens.
+           Use one coordinate system for BOTH regions and block operations.
+           Check region connectivity and keep walkable doorways open.
         3) Compute the actual x/y/z for each component from a COMMON footprint,
            not random scattered numbers. Place structural blocks first, then
            carve openings, glazing, doors and furnishing. No floating parts.
