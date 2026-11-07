@@ -134,6 +134,7 @@ public final class BuilderSelfTest {
         list.add(s("round stone tower","hollow_cylinder","deepslate_bricks",100,1,5,1));
         list.add(s("solid watch tower base","cylinder","stone_bricks",65,1,5,1));
         list.add(s("archway","arch","stone_bricks",13,5,5,1));
+        list.add(s("LLM stage as type details", "details", "lantern",1));
         // GPT-4.1 and other LLMs sometimes emit the English plural.
         // Test the real compiler path, not just the name-normalization unit.
         list.add(s("LLM plural arches","arches","stone_bricks",13,5,5,1));
